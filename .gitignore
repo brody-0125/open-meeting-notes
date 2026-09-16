@@ -1,0 +1,32 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+*.log
+.env
+.env.*
+!.env.example
+
+# Local development designs and evidence: never stage these for publishing.
+/docs/private/
+/work/
+/outputs/
+/quality/
+/releases/
+/models/
+/recordings/
+/exports/
+*design*.md
+*quality-plan*.md
+
+# Model weights, captured media, certificates and private signing keys.
+*.onnx
+*.wasm
+*.gguf
+*.safetensors
+*.wav
+*.pcm
+*.webm
+*.pfx
+*.p12
+*.key

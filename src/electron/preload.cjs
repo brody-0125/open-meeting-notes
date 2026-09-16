@@ -1,0 +1,26 @@
+const { contextBridge, ipcRenderer } = require('electron');
+contextBridge.exposeInMainWorld('meeting', {
+  models: () => ipcRenderer.invoke('meeting:models'),
+  analyze: (id, runId, language) => ipcRenderer.invoke('meeting:analyze', id, runId, language),
+  cancelAnalysis: runId => ipcRenderer.invoke('meeting:cancel-analysis', runId),
+  exportAnalysis: runId => ipcRenderer.invoke('meeting:export-analysis', runId),
+  reviewAnalysis: (runId, group, item, state) => ipcRenderer.invoke('meeting:review-analysis', runId, group, item, state),
+  correctTranscript: (runId, segmentId, text) => ipcRenderer.invoke('meeting:correct-transcript', runId, segmentId, text),
+  reviewTranscript: (runId, segmentId, state) => ipcRenderer.invoke('meeting:review-transcript', runId, segmentId, state),
+  transcriptAudio: (runId, segmentId) => ipcRenderer.invoke('meeting:transcript-audio', runId, segmentId),
+  onPlaybackStopped: callback => ipcRenderer.on('meeting:stop-playback', () => callback()),
+  inferenceResult: message => ipcRenderer.invoke('meeting:inference-result', message),
+  onInferenceRequest: callback => ipcRenderer.on('meeting:inference-request', (_event, message) => callback(message)),
+  list: () => ipcRenderer.invoke('meeting:list'),
+  inspect: id => ipcRenderer.invoke('meeting:inspect', id),
+  recoverAudio: id => ipcRenderer.invoke('meeting:recover-audio', id),
+  prepare: () => ipcRenderer.invoke('meeting:prepare'),
+  acquired: id => ipcRenderer.invoke('meeting:acquired', id),
+  append: (id, chunk) => ipcRenderer.invoke('meeting:append', id, chunk),
+  pause: (id, record) => ipcRenderer.invoke('meeting:pause', id, record),
+  resume: (id, record) => ipcRenderer.invoke('meeting:resume', id, record),
+  stop: (id, cutoffs) => ipcRenderer.invoke('meeting:stop', id, cutoffs),
+  finish: id => ipcRenderer.invoke('meeting:finish', id),
+  abort: (id, reason) => ipcRenderer.invoke('meeting:abort', id, reason),
+  onStopRequested: callback => { ipcRenderer.on('meeting:request-stop', () => callback()); }
+});
