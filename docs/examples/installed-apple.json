@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "stt": {
+    "backend": "apple",
+    "locale": "ko-KR",
+    "preset": "offlineTranscription",
+    "approvedCapabilityHash": "REPLACE_WITH_SHA256_OF_apple-stt-capability.json"
+  },
+  "summary": {
+    "root": "packs/summary",
+    "approvedManifestHash": "REPLACE_WITH_SUMMARY_MANIFEST_SHA256"
+  },
+  "vad": {
+    "root": "packs/vad",
+    "approvedManifestHash": "REPLACE_WITH_VAD_MANIFEST_SHA256"
+  }
+}

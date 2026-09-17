@@ -1,4 +1,6 @@
 import { verifyModelPack, readVerifiedModelAsset } from '../model-pack.mjs';
+import { verifyAppleSttCapability } from './stt-capability.mjs';
+import { sttDisplayLabel } from './stt-backend.mjs';
 import { isAbsolute, join } from 'node:path';
 
 export function installationRoot(root, baseDirectory) {
@@ -21,7 +23,15 @@ export async function installedModels(config, { baseDirectory } = {}) {
   for (const kind of ['stt', 'summary', 'vad']) {
     const record = config[kind];
     if (!record) continue;
+    if (kind === 'stt' && record.backend === 'apple') {
+      if (!baseDirectory) throw new Error('absolute installation base required');
+      const apple = await verifyAppleSttCapability({ baseDirectory, record });
+      status.stt = { backend: 'apple', modelHash: apple.modelHash, locale: apple.locale, preset: apple.preset,
+        label: sttDisplayLabel({ backend: 'apple', locale: apple.locale }) };
+      continue;
+    }
     if (typeof record.root !== 'string' || kind === 'stt' && (typeof record.modelId !== 'string' || !/^[a-zA-Z0-9-]{1,80}$/.test(record.modelId))) throw new Error('invalid model installation');
+    if (kind === 'stt' && record.backend && record.backend !== 'transformers') throw new Error('invalid model installation');
     const engine = kind === 'stt' ? 'transformers' : kind === 'vad' ? 'silero' : 'webllm';
     const engineVersion = kind === 'stt' ? '4.3.0' : kind === 'vad' ? '1.31.0-dev.20260914-8d85527a0' : '0.2.85';
     const pack = await verifyModelPack({ root: installationRoot(record.root, baseDirectory), approvedManifestHash: record.approvedManifestHash, engine, engineVersion });
@@ -35,7 +45,11 @@ export async function installedModels(config, { baseDirectory } = {}) {
       if ((!(kind !== 'vad' && file.path.startsWith(prefix)) && !runtimes.includes(file.path)) || files.has(route)) throw new Error('model route conflict');
       files.set(route, () => readVerifiedModelAsset(pack, file));
     }
-    status[kind] = { modelHash: pack.manifestHash, modelId: kind === 'stt' ? record.modelId : kind === 'vad' ? 'silero' : pack.id };
+    if (kind === 'stt') {
+      const device = record.device === 'webgpu' ? 'webgpu' : 'wasm';
+      status.stt = { backend: 'transformers', modelHash: pack.manifestHash, modelId: record.modelId, device, dtype: 'q8',
+        label: sttDisplayLabel({ backend: 'transformers', modelId: record.modelId }) };
+    } else status[kind] = { modelHash: pack.manifestHash, modelId: kind === 'vad' ? 'silero' : pack.id };
   }
   return { files, status, packs };
 }

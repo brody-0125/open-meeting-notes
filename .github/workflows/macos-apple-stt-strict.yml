@@ -1,0 +1,23 @@
+# Optional: run on macOS 26+ runners when available. Enables OMN_APPLE_STT_STRICT (probe.available required).
+name: macOS Apple STT (strict)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'
+
+jobs:
+  strict:
+    runs-on: macos-26
+    env:
+      OMN_APPLE_STT_CI: '1'
+      OMN_APPLE_STT_STRICT: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build:inference
+      - run: npm run ci:macos-apple-stt

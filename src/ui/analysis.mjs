@@ -22,10 +22,13 @@ bridge.onInferenceRequest(async message => {
       if (input.vadModelHash) {
         measurement = await run.vadClient.run('measure-speech', { audio, modelHash: input.vadModelHash });
       }
-      input = { audio, modelId: input.modelId, modelHash: input.modelHash, language: input.language };
+      input = { audio, modelId: input.modelId, modelHash: input.modelHash, device: input.device, dtype: input.dtype,
+        language: input.language, backend: input.backend, locale: input.locale, preset: input.preset };
     } else $('analysis-status').textContent = message.operation === 'reconcile' ? '전체 원문과 구간별 후보를 대조해 통합하고 있습니다…' : message.operation === 'plan-summary' ? '전사를 모델의 입력 한도에 맞춰 나누고 있습니다…' : `구간 ${(input.partIndex ?? 0) + 1}/${input.totalParts ?? 1} · 원문 근거를 확인하며 요약하고 있습니다…`;
     if (run !== active || run.cancelled) return;
-    let result = await run.client.run(message.operation, input);
+    let result = message.operation === 'transcribe' && input.backend === 'apple'
+      ? await bridge.transcribeApple({ audio: input.audio, locale: input.locale, preset: input.preset })
+      : await run.client.run(message.operation, input);
     if (message.operation === 'transcribe') result = markUnconfirmedSpeech(result, input.audio, measurement);
     await bridge.inferenceResult({ id: message.id, runId: run.id, result });
   } catch (error) {

@@ -100,6 +100,18 @@ test('served model bytes are verified again after installation, not only at star
   await assert.rejects(read(), /link/);
 });
 
+test('apple STT installation verifies capability without whisper routes', async t => {
+  const base = await mkdtemp(join(tmpdir(), 'omn-installed-apple-'));
+  t.after(() => rm(base, { recursive: true, force: true }));
+  const capability = JSON.stringify({ version: 1, engine: 'apple-speech-transcriber', allowedLocales: ['ko-KR'], allowedPresets: ['offlineTranscription'] });
+  await writeFile(join(base, 'apple-stt-capability.json'), capability);
+  const approvedCapabilityHash = sha(capability);
+  const result = await installedModels({ version: 1, stt: { backend: 'apple', locale: 'ko-KR', preset: 'offlineTranscription', approvedCapabilityHash } }, { baseDirectory: base });
+  assert.equal(result.status.stt.backend, 'apple');
+  assert.equal(result.status.stt.modelHash, approvedCapabilityHash);
+  assert.equal(result.files.size, 0);
+});
+
 test('VAD-only installation exposes exact hashed model and runtime paths', async t => {
   const root = await mkdtemp(join(tmpdir(), 'omn-installed-vad-'));
   t.after(() => rm(root, { recursive: true, force: true }));

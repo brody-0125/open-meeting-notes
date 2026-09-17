@@ -10,7 +10,8 @@ import { CorrectionStore } from '../src/corrections.mjs';
 import { ReviewStore, speechReviewKey } from '../src/reviews.mjs';
 import { PauseStore } from '../src/pauses.mjs';
 import { meetingMarkdown } from '../src/export.mjs';
-const models = { stt: { modelId: 'tiny', modelHash: 'a'.repeat(64) }, summary: { modelHash: 'b'.repeat(64) } };
+const models = { stt: { backend: 'transformers', modelId: 'tiny', modelHash: 'a'.repeat(64), device: 'wasm' },
+  summary: { modelHash: 'b'.repeat(64) } };
 const candidate = input => ({ version: 1, revision: 1, items: [{ kind: 'topic', status: 'candidate', text: input.segments[0].rawText,
   evidence: [{ segmentId: input.segments[0].id, quote: input.segments[0].rawText }] }] });
 
@@ -234,6 +235,13 @@ test('invalid reconciliation preserves parts and retries only reconciliation; ca
   const changed = await analyzeRecording({ root, models: changedModels, execute });
   assert.deepEqual(calls, ['plan-summary', 'summarize', 'summarize', 'reconcile']);
   assert.equal(changed.reconciliation.state, 'complete');
+});
+
+test('apple STT rejects analysis language that does not match installed locale', async t => {
+  const root = await fixture(t);
+  const apple = { backend: 'apple', locale: 'ko-KR', preset: 'offlineTranscription', modelHash: 'e'.repeat(64) };
+  await assert.rejects(analyzeRecording({ root, models: { stt: apple, summary: models.summary }, language: 'en',
+    execute: async () => assert.fail('must not transcribe') }), /locale/);
 });
 
 test('a plan that omits text never reaches summary generation or becomes reusable', async t => {

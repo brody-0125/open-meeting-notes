@@ -155,7 +155,8 @@ async function refreshRecords() {
     installedVad = models.vad;
     $('silence-enabled').disabled = !installedVad || !['idle', 'saved', 'failed', 'ready'].includes(phase);
     $('silence-model').textContent = installedVad ? '로컬 무음 감시 모델 설치됨' : '무음 자동 종료에는 승인된 로컬 VAD 모델이 필요합니다.';
-    $('model-status').textContent = models.error ?? (models.stt && models.summary ? models.vad ? '로컬 전사·요약·발화 감지 모델 설치됨' : '발화 감지 모델 미설치: 전사는 가능하지만 자동 요약은 보류됩니다.' : '전사·요약을 실행하려면 승인된 로컬 모델팩을 설치하세요.');
+    const sttLabel = models.stt?.label ?? (models.stt?.backend === 'apple' ? `macOS 음성 인식 (${models.stt.locale})` : models.stt?.modelId ? `로컬 Whisper (${models.stt.modelId})` : null);
+    $('model-status').textContent = models.error ?? (models.stt && models.summary ? `${sttLabel ?? '전사'} · 요약 설치됨${models.vad ? ' · 발화 감지 설치됨' : ' · 발화 감지 미설치: 자동 요약 보류'}` : '전사·요약을 실행하려면 승인된 로컬 모델팩을 설치하세요.');
     $('records').replaceChildren();
     $('library-message').textContent = records.length ? '최근 50개까지 표시합니다. 오디오 검증으로 저장 상태를 확인하세요.' : '저장된 기록이 없습니다.';
     for (const record of records) {

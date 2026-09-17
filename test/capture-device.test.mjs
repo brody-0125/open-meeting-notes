@@ -26,6 +26,12 @@ function setup(t) {
   Object.assign(context, { state: 'suspended', sampleRate: 48000, destination: {},
     audioWorklet: { addModule: async () => {} },
     createMediaStreamSource: () => new Node(),
+    createAnalyser: () => {
+      const analyser = new Node();
+      analyser.fftSize = 2048;
+      analyser.getFloatTimeDomainData = buffer => buffer.fill(0);
+      return analyser;
+    },
     resume: async () => { context.state = 'running'; },
     close: async () => { context.state = 'closed'; } });
   const calls = [];

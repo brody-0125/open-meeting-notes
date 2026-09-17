@@ -13,6 +13,8 @@ import { sealRecording, inspectRecording } from '../recording-seal.mjs';
 import { transcriptAudio } from '../transcript-audio.mjs';
 import { RecordingLibrary } from '../library.mjs';
 import { installedModels } from './installed-models.mjs';
+import { AppleSttBridge } from './apple-stt-bridge.mjs';
+import { ensureAppleSttReady } from './stt-backend.mjs';
 import { analyzeRecording } from '../analyze-recording.mjs';
 import { InferenceChannel } from './inference-channel.mjs';
 import { saveMeetingMarkdown } from '../export.mjs';
@@ -74,7 +76,9 @@ export function startApp({ directory, show = true, confirm, modelConfig, onBlock
       }
       const installed = await installedModels(modelConfig, { baseDirectory: fileURLToPath(new URL('../../models/', import.meta.url)) });
       const bundles = [];
-      for (const [kind, name] of [['stt', 'whisper'], ['summary', 'summarizer'], ['vad', 'silero']]) if (installed.status[kind]) {
+      for (const [kind, name] of [['stt', 'whisper'], ['summary', 'summarizer'], ['vad', 'silero']]) {
+        if (!installed.status[kind]) continue;
+        if (kind === 'stt' && installed.status.stt.backend === 'apple') continue;
         const path = new URL(`../../dist/${name}.js`, import.meta.url);
         await access(path); bundles.push([`/${name}.mjs`, path]);
       }
@@ -130,6 +134,7 @@ export function startApp({ directory, show = true, confirm, modelConfig, onBlock
         window.webContents.send('meeting:request-stop');
       }
     });
+    const appleStt = new AppleSttBridge();
     const channel = new InferenceChannel(message => window.webContents.send('meeting:inference-request', { ...message, runId: analysis.runId }));
     const handle = (name, fn) => ipcMain.handle(`meeting:${name}`, (event, ...args) => { assertSender(event, window); return fn(event, ...args); });
     const current = sessionId => { if (!recording || sessionId !== id) throw new Error('stale recording session'); return recording; };
@@ -159,6 +164,7 @@ export function startApp({ directory, show = true, confirm, modelConfig, onBlock
       const active = analysis = { runId, controller };
       try {
         const { path } = await library.directory(selectedId);
+        if (models.stt?.backend === 'apple') await ensureAppleSttReady(models.stt, language, locale => appleStt.probe(locale));
         const result = await analyzeRecording({ root: path, models, language, signal: controller.signal,
           execute: (operation, input) => channel.request(operation, input, controller.signal) });
         controller.signal.throwIfAborted();
@@ -215,6 +221,14 @@ export function startApp({ directory, show = true, confirm, modelConfig, onBlock
         lastAnalysis = undefined;
         return state;
       } finally { reviewing = false; }
+    });
+    handle('transcribe-apple', async (_event, payload) => {
+      if (!analysis || !models.stt || models.stt.backend !== 'apple') throw new Error('apple transcription unavailable');
+      const { audio, locale, preset } = payload ?? {};
+      if (locale !== models.stt.locale) throw new Error('stale apple transcription request');
+      const samples = audio?.samples instanceof Float32Array ? audio.samples : Float32Array.from(audio?.samples ?? []);
+      return appleStt.transcribe({ ...audio, samples }, { locale, preset: preset ?? models.stt.preset,
+        signal: analysis.controller.signal });
     });
     handle('inference-result', (_event, message) => Boolean(analysis && message?.runId === analysis.runId && channel.respond(message)));
     handle('list', async () => (await library.list()).filter(entry => !(entry.id === id && (finalizing || isRecordingActive()))));

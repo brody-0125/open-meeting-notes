@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('meeting', {
   transcriptAudio: (runId, segmentId) => ipcRenderer.invoke('meeting:transcript-audio', runId, segmentId),
   onPlaybackStopped: callback => ipcRenderer.on('meeting:stop-playback', () => callback()),
   inferenceResult: message => ipcRenderer.invoke('meeting:inference-result', message),
+  transcribeApple: input => ipcRenderer.invoke('meeting:transcribe-apple', input),
   onInferenceRequest: callback => ipcRenderer.on('meeting:inference-request', (_event, message) => callback(message)),
   list: () => ipcRenderer.invoke('meeting:list'),
   inspect: id => ipcRenderer.invoke('meeting:inspect', id),
