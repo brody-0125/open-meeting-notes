@@ -100,6 +100,7 @@ const files = [];
 async function inventory(directory) {
   for (const entry of (await readdir(directory, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name))) {
     const path = join(directory, entry.name);
+    if (entry.isSymbolicLink()) continue;
     if (entry.isDirectory()) await inventory(path);
     else if (entry.isFile()) {
       const hash = createHash('sha256'); let bytes = 0;
