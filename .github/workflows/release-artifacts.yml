@@ -6,20 +6,29 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Git tag to build (e.g. v1.0.0)
+        description: Release tag to attach assets to (e.g. v1.0.0)
         required: true
         default: v1.0.0
+      source_ref:
+        description: Git ref to build from (default main — includes packaging fixes after the tag)
+        required: false
+        default: main
+      macos_only:
+        description: Build and upload macOS artifacts only (workflow_dispatch)
+        type: boolean
+        default: false
 
 permissions:
   contents: write
 
 jobs:
   windows:
+    if: github.event_name == 'release' || inputs.macos_only != true
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name || inputs.tag }}
+          ref: ${{ github.event.release.tag_name || inputs.source_ref || inputs.tag }}
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -55,7 +64,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name || inputs.tag }}
+          ref: ${{ github.event.release.tag_name || inputs.source_ref || inputs.tag }}
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
