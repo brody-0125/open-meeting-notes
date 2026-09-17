@@ -28,7 +28,7 @@ node scripts/package-macos.mjs ../releases/my-mac-build ./models/installed-apple
 
 Apple `installed.json` must sit beside `apple-stt-capability.json` under `models/`.
 
-`SpeechEngine.swift` uses `SpeechAnalyzer` + `SpeechTranscriber` (macOS 26 SDK). Build on a Mac with Xcode 26+. The host app must declare `NSSpeechRecognitionUsageDescription`; the helper may prompt for Speech Recognition when first used.
+`SpeechEngine.live.swift` uses `SpeechAnalyzer` + `SpeechTranscriber` (macOS 26 SDK). `build-apple-stt-helper.mjs` copies it to `SpeechEngine.swift` on macOS 26+; macOS 15 CI builds the committed stub. The host app must declare `NSSpeechRecognitionUsageDescription`.
 
 `AssetInventory.downloadAndInstall()` runs during transcribe when the locale model is missing (system-managed download). Analysis policy remains `fallback: none` at the app level (no Whisper fallback).
 
