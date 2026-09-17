@@ -33,9 +33,9 @@ git push origin v1.0.0
 gh release create v1.0.0 --title "1.0.0" --notes-file CHANGELOG_SNIPPET.md
 ```
 
-Use a trimmed notes file or `gh release create v1.0.0 --notes "..."` with the `[1.0.0]` section from the changelog.
+Pass the `[1.0.0]` section from the changelog as `--notes` or `--notes-file`.
 
 ## Post-release
 
 - Open `[Unreleased]` in `CHANGELOG.md` for the next cycle.
-- Bump to `1.0.1-dev` or `1.1.0` on `main` only when starting the next development line (team preference).
+- Bump `package.json` on `main` when the next development line starts.

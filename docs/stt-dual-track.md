@@ -1,4 +1,4 @@
-# STT dual-track (ponytail)
+# STT dual-track
 
 Two transcription backends share one downstream pipeline (VAD review, jobs, summary, export).
 
@@ -9,7 +9,7 @@ Two transcription backends share one downstream pipeline (VAD review, jobs, summ
 | D1 | **Fallback `none`** — Apple STT unavailable → no automatic Whisper fallback. |
 | D2 | Analysis UI **`ko` / `en`**; Apple locale **`ko-KR` / `en-US`** via fixed mapping; `installed.json` `stt.locale` is deployment approval; mismatch → reject analysis. |
 | D3 | **Renderer → Main** Float32 PCM IPC; **Main → helper** stdio JSON header line + raw float32 LE body. |
-| D4 | **Single universal** codebase; OS bundles and `models/installed.json` profiles differ. |
+| D4 | One codebase. OS bundles and `models/installed.json` profiles differ. |
 
 ## Tracks
 
