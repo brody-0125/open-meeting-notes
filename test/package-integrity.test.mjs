@@ -15,7 +15,7 @@ async function fixture(t, edit = m => m) {
     const bytes = Buffer.from('synthetic'); await writeFile(join(root, path), bytes);
     files.push({ path, bytes: bytes.length, sha256: hash(bytes) });
   }
-  const manifest = edit({ version: 1, appVersion: '0.1.0', electronVersion: '44.4.1', platform: 'win32-x64', signed: false, files });
+  const manifest = edit({ version: 1, appVersion: '1.0.0', electronVersion: '44.4.1', platform: 'win32-x64', signed: false, files });
   const bytes = JSON.stringify(manifest); await writeFile(join(root, 'build-manifest.json'), bytes);
   return { root, approvedManifestHash: hash(bytes) };
 }

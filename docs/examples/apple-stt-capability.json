@@ -4,5 +4,5 @@
   "minMacOS": "26.0",
   "allowedLocales": ["ko-KR", "en-US"],
   "allowedPresets": ["offlineTranscription"],
-  "appVersion": "0.1.0"
+  "appVersion": "1.0.0"
 }

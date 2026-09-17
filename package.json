@@ -1,9 +1,14 @@
 {
   "name": "open-meeting-notes",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
+  "version": "1.0.0",
   "description": "Offline meeting capture, transcription and evidence-linked notes",
+  "author": "Seokhyeon Kim",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brody-0125/open-meeting-notes.git"
+  },
+  "type": "module",
   "engines": {
     "node": ">=24"
   },
