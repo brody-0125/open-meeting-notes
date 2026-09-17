@@ -16,9 +16,10 @@ function run(command, args, { env } = {}) {
 const root = fileURLToPath(new URL('../', import.meta.url));
 const node = process.execPath;
 
+// Run before building the helper so the "rejects apple STT without helper" test sees no binary.
+run(node, ['--test', join(root, 'test/deployment/macos-package-config.test.mjs')]);
 run(node, [join(root, 'scripts/build-apple-stt-helper.mjs'), '--release']);
 run(node, [join(root, 'scripts/verify-apple-stt-helper.mjs')]);
-run(node, ['--test', join(root, 'test/deployment/macos-package-config.test.mjs')]);
 run(node, ['--test',
   join(root, 'test/apple-stt-bridge.test.mjs'),
   join(root, 'test/apple-stt-example.test.mjs'),
