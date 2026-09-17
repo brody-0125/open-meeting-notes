@@ -1,7 +1,7 @@
 import Foundation
 
 enum AsyncSupport {
-  static func run<T>(_ body: @escaping () async throws -> T) throws -> T {
+  static func run<T>(_ body: @escaping @Sendable () async throws -> T) throws -> T {
     let box = ResultBox<T>()
     let group = DispatchGroup()
     group.enter()
