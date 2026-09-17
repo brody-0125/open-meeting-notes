@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "engine": "apple-speech-transcriber",
+  "minMacOS": "26.0",
+  "allowedLocales": ["ko-KR", "en-US"],
+  "allowedPresets": ["offlineTranscription"],
+  "appVersion": "0.1.0"
+}

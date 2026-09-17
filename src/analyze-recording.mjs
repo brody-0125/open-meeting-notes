@@ -10,20 +10,20 @@ import { validateSummaryPartitions, summarizePartitions } from './inference/summ
 import { CorrectionStore } from './corrections.mjs';
 import { ReviewStore, speechReviewKey } from './reviews.mjs';
 import { reconciliationInput, validateReconciliation } from './inference/reconciliation.mjs';
+import { sttSettingsHash, assertAnalysisLanguageMatchesSttLocale } from './stt-settings.mjs';
 const sha = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 
 export async function analyzeRecording({ root, models, execute, signal, language = 'ko' }) {
   if (!models?.stt || !models?.summary) throw new Error('local models required');
   if (!['ko', 'en'].includes(language)) throw new Error('unsupported language');
+  assertAnalysisLanguageMatchesSttLocale(models.stt, language);
   signal?.throwIfAborted();
   const recording = await inspectRecording(root);
   if (recording.state !== 'complete') throw new Error('complete recording required');
   signal?.throwIfAborted();
   const jobs = new JobStore(join(root, 'jobs'));
   const audio = new ChunkStore(root), completed = [];
-  const settingsHash = sha({ version: 1, engine: 'transformers-4.3.0', dtype: 'q8', device: 'wasm', language,
-    preprocessing: 'web-audio-v4-segment-speech-review', vadModelHash: models.vad?.modelHash ?? null,
-    vadThreshold: .5, windowSeconds: 30, overlapSeconds: 2, maxTokens: 256 });
+  const settingsHash = sttSettingsHash({ stt: models.stt, language, vadModelHash: models.vad?.modelHash ?? null });
   for (const source of ['microphone', 'remote']) {
     const config = { sessionId: recording.sessionId, source, revision: 1, modelHash: models.stt.modelHash, settingsHash,
       pauses: recording.pauses ?? [] };

@@ -43,12 +43,13 @@ npm start
 }
 ```
 
-앱에서 상대 경로는 `models/` 기준입니다. 절대 로컬 경로도 지원하며 URL·UNC·경로 이탈 및 링크를 통한 우회는 거절합니다. STT는 Transformers.js/Whisper, 요약은 WebLLM, 발화 감지는 Silero를 사용합니다. 승인된 manifest와 모든 모델 파일의 무결성을 검사하며 누락 파일을 외부에서 자동 다운로드하지 않습니다.
+앱에서 상대 경로는 `models/` 기준입니다. 절대 로컬 경로도 지원하며 URL·UNC·경로 이탈 및 링크를 통한 우회는 거절합니다. STT는 기본적으로 Transformers.js/Whisper(로컬 팩)이며, macOS 26+ 배포 프로필에서는 시스템 온디바이스 음성 인식(Apple)을 선택할 수 있습니다(`docs/stt-dual-track.md`). 요약은 WebLLM, 발화 감지는 Silero를 사용합니다. 승인된 manifest(또는 Apple capability)와 모델 파일 무결성을 검사하며 누락 파일을 외부에서 자동 다운로드하지 않습니다. Apple 로캘 음성 모델의 최초 설치는 OS가 관리할 수 있습니다.
 
 ## 테스트
 
 ```sh
 npm test
+npm run ci:macos-apple-stt   # macOS only — matches CI macos-apple-stt job
 npm run test:app
 npm run test:electron
 npm run test:preflight
@@ -61,6 +62,18 @@ npm run test:package-config
 Electron 시험은 실행 가능한 데스크톱 환경이 필요합니다. `test:capture-soak`는 기본 60초의 실제 시간 합성 입력 시험이며 `OMN_CAPTURE_SOAK_MS`로 기간을 지정합니다. `test:recording-volume`은 가속된 2시간 PCM 용량 시험이므로 실제 2시간 장치 녹음 시험과 다릅니다.
 
 실제 모델 시험은 별도로 반입한 승인 모델팩과 fixture 환경변수가 필요합니다. 기본 테스트에 모델 가중치나 실제 회의 데이터를 포함하지 않습니다. 실행 명령 전체는 [package.json](package.json)을 참조하세요.
+
+## macOS 개발 패키징 (Apple STT 프로필)
+
+macOS 26+ 및 Xcode 26에서 네이티브 전사 helper를 빌드한 뒤 패키징합니다. 예시 설정은 [`docs/examples/installed-apple.json`](docs/examples/installed-apple.json)과 [`docs/examples/apple-stt-capability.json`](docs/examples/apple-stt-capability.json)을 `models/`에 복사·해시를 맞춘 뒤 사용합니다. 상세는 [`docs/stt-dual-track.md`](docs/stt-dual-track.md).
+
+```sh
+npm run build:apple-stt-helper -- --release
+npm run verify:apple-stt-helper
+npm run package:macos -- OUTPUT_DIRECTORY TRUSTED_INSTALLATION_JSON --bundle-models
+```
+
+Apple STT 프로필은 Whisper 팩 없이 요약·VAD 팩과 `omn-speech-helper`를 포함합니다. 패키저가 `NSSpeechRecognitionUsageDescription`을 `Info.plist`에 추가합니다.
 
 ## Windows 개발 패키징
 
