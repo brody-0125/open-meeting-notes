@@ -25,6 +25,8 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - name: Install Electron runtime for packaging
+        run: npx electron --version
       - run: npm run build:inference
       - name: Package Windows x64
         shell: pwsh
@@ -34,6 +36,7 @@ jobs:
           if (Test-Path $out) { Remove-Item -Recurse -Force $out }
           New-Item -ItemType Directory -Force -Path releases | Out-Null
           npm run package:windows -- $out
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $zip = "releases/open-meeting-notes-$version-win32-x64.zip"
           if (Test-Path $zip) { Remove-Item $zip }
           Compress-Archive -Path $out -DestinationPath $zip -CompressionLevel Optimal
@@ -58,6 +61,8 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - name: Install Electron runtime for packaging
+        run: npx electron --version
       - run: npm run build:inference
       - run: npm run build:apple-stt-helper -- --release
       - name: Package macOS
