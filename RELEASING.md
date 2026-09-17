@@ -19,7 +19,9 @@ Update example metadata when bumping (e.g. [`docs/examples/apple-stt-capability.
 - [ ] Build and smoke-test packages on target OS (models supplied locally; not in Git)
 - [ ] Git tag `v1.0.0` on the release commit
 - [ ] GitHub Release with notes from `CHANGELOG.md` `[1.0.0]`
-- [ ] Attach signed or unsigned build artifacts per your deployment policy (artifacts are not stored in this repository)
+- [ ] Attach unsigned development packages (not stored in Git):
+  - **Windows x64:** `npm run package:windows -- releases/open-meeting-notes-<version>-win32-x64` then zip and `gh release upload`.
+  - **macOS:** `npm run package:macos -- releases/...` (see README), or use [`.github/workflows/release-artifacts.yml`](.github/workflows/release-artifacts.yml) (`workflow_dispatch` with tag, or automatic on `release: published`).
 
 ## Tag and GitHub release (example)
 
