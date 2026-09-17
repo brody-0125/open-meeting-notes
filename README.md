@@ -1,8 +1,10 @@
+**English** | [한국어](README.ko.md)
+
 # open-meeting-notes
 
 **Version 1.0.0** — Offline meeting capture, local transcription, and evidence-linked notes (Electron).
 
-회의 오디오를 로컬에서 녹음·전사하고, 원문 근거가 연결된 요약 후보를 검토한 뒤 Markdown으로 보냅니다. Microsoft Graph·회의 일정 연동은 포함하지 않습니다.
+Records and transcribes meeting audio on the local machine. You review summary candidates linked to the source transcript, then export Markdown. Microsoft Graph and calendar integration are not included.
 
 | | |
 |---|---|
@@ -18,7 +20,7 @@
 - **VAD & review** — Silero-based speech boundaries; transcript review and corrections before export.
 - **Summary** — Local WebLLM summarization with reconciliation and evidence links.
 - **Recovery** — Interrupted recordings can export verified WAV segments.
-- **Trusted models** — `models/installed.json` + approved manifest hashes; the app does not fetch missing weights from the internet.
+- **Trusted models** — `models/installed.json` plus approved manifest hashes. The app does not fetch missing weights from the internet.
 
 ## Quick start (development)
 
@@ -88,7 +90,7 @@ Electron integration tests (`test:app`, `test:electron`, model flows, soak tests
 
 ## Packaging (development builds)
 
-Not installers or store signing — offline folders built from the installed Electron runtime plus bundled app code.
+These commands produce offline folders from the installed Electron runtime plus bundled app code. They are not installers and they are not store-signed.
 
 **Windows x64**
 
@@ -107,13 +109,13 @@ npm run verify:apple-stt-helper
 npm run package:macos -- OUTPUT_DIR path/to/installed.json --bundle-models
 ```
 
-`--bundle-models` copies only manifest-listed assets. Existing output directories are not overwritten. Model licenses and organizational approval are your responsibility.
+`--bundle-models` copies only manifest-listed assets. Existing output directories are not overwritten. Model licenses and organizational approval are the operator's responsibility.
 
 ## Limitations (1.0.0)
 
-- **Development-grade deployment** — Validated on synthetic and local model fixtures (including Korean STT/summary smoke paths). Not a warranty for every meeting room, duration, or hardware.
-- **Egress** — In-app local inference and Chromium restrictions are **not** the same as OS-wide block, Authenticode, or enterprise firewall policy. See README history in [CHANGELOG.md](CHANGELOG.md) and audit helpers for Windows packages.
-- **Models** — Weights and recordings stay out of Git; compliance and retention are operator-owned.
+- **Development packaging** — Checked with synthetic and local model fixtures, including Korean STT/summary smoke paths. That is not a claim about every meeting room, duration, or machine.
+- **Egress** — In-app local inference and Chromium restrictions are not an OS-wide block, Authenticode signature, or enterprise firewall. See [CHANGELOG.md](CHANGELOG.md) and the Windows package audit helpers.
+- **Models** — Weights and recordings stay out of Git. Compliance and retention belong to the operator.
 
 ## Repository layout
 
@@ -124,7 +126,7 @@ npm run package:macos -- OUTPUT_DIR path/to/installed.json --bundle-models
 
 ## Contributing
 
-There is no separate contributor guide yet. Open an issue or pull request on GitHub. Do not commit `docs/private/`, model weights, recordings, or release binaries (`git add -f` on ignored paths is discouraged).
+Open an issue or pull request. Do not commit `docs/private/`, model weights, recordings, or release binaries. Avoid `git add -f` on ignored paths.
 
 ## License
 

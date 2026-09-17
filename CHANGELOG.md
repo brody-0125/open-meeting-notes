@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Default README is English. Korean copy lives in [`README.ko.md`](README.ko.md).
+
 ## [1.0.0] - 2026-09-17
 
 First public release. Offline meeting capture, local transcription, evidence-linked summary review, and Markdown export.
