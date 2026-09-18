@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Default README is English. Korean copy lives in [`README.ko.md`](README.ko.md).
+- Application, tests, and Node scripts are TypeScript (`.mts`/`.cts`). `tsc` emits the same `.mjs`/`.cjs` runtime files as 1.0.0.
 
 ## [1.0.0] - 2026-09-17
 

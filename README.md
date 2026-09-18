@@ -32,6 +32,8 @@ npm run build:inference
 npm start
 ```
 
+`npm start`, `npm test`, and packaging run `tsc` first. Sources are `.mts`/`.cts`; Electron still loads `.mjs`/`.cjs`. `npm run compile` emits those files on its own.
+
 `npm ci` uses the network for npm packages only. Runtime inference uses models you install locally.
 
 1. Grant OS microphone / screen-capture permissions when prompted.
@@ -119,9 +121,9 @@ npm run package:macos -- OUTPUT_DIR path/to/installed.json --bundle-models
 
 ## Repository layout
 
-- `src/` — Application, Electron main/preload, UI, inference glue.
+- `src/` — Application, Electron main/preload, UI, inference glue (TypeScript; `tsc` emits `.mjs`/`.cjs`).
 - `scripts/` — Build, package, verify, CI helpers.
-- `test/` — Unit and integration tests (root `npm test` runs `test/*.test.mjs`).
+- `test/` — Unit and integration tests (root `npm test` compiles, then runs `test/*.test.mjs`).
 - `native/macos/` — `omn-speech-helper` (Swift).
 
 ## Contributing

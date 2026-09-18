@@ -1,5 +1,13 @@
 node_modules/
 dist/
+
+# tsc emit next to .mts/.cts sources
+src/**/*.mjs
+src/**/*.cjs
+test/**/*.mjs
+test/**/*.cjs
+scripts/**/*.mjs
+
 test-results/
 playwright-report/
 *.log

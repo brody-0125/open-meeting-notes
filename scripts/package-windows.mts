@@ -51,7 +51,7 @@ if (modelConfig !== undefined) {
   await installedModels(modelConfig, { baseDirectory: join(app, 'models') });
   await writeFile(join(app, 'models/installed.json'), JSON.stringify(modelConfig, null, 2));
 }
-await cp(join(root, 'src'), join(app, 'src'), { recursive: true });
+await cp(join(root, 'src'), join(app, 'src'), { recursive: true, filter: source => !/\.(mts|cts)$/.test(source) });
 await cp(join(root, 'dist'), join(app, 'dist'), { recursive: true });
 await writeFile(join(app, 'package.json'), JSON.stringify({ name: pkg.name, version: pkg.version, type: 'module', main: 'src/electron/main.mjs' }, null, 2));
 // Retain installed dependency license/notice files, including transitive bundles.

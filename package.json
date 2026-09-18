@@ -13,6 +13,12 @@
     "node": ">=24"
   },
   "scripts": {
+    "compile": "tsc",
+    "prestart": "tsc",
+    "pretest": "tsc",
+    "prebuild:inference": "tsc",
+    "prepackage:windows": "tsc",
+    "prepackage:macos": "tsc",
     "build:inference": "node scripts/build-inference.mjs",
     "build:apple-stt-helper": "node scripts/build-apple-stt-helper.mjs",
     "verify:apple-stt-helper": "node scripts/verify-apple-stt-helper.mjs",
@@ -74,9 +80,11 @@
     "evaluate:korean-stt": "node scripts/evaluate-korean-stt.mjs"
   },
   "devDependencies": {
+    "@types/node": "24.13.5",
     "electron": "44.4.1",
     "esbuild": "0.28.2",
-    "playwright": "1.63.0"
+    "playwright": "1.63.0",
+    "typescript": "5.9.3"
   },
   "dependencies": {
     "@huggingface/transformers": "4.3.0",

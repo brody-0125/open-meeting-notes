@@ -36,6 +36,7 @@ jobs:
       - run: npm ci
       - name: Install Electron runtime for packaging
         run: npx electron --version
+      - run: npm run compile
       - run: npm run build:inference
       - name: Package Windows x64
         shell: pwsh
@@ -72,6 +73,7 @@ jobs:
       - run: npm ci
       - name: Install Electron runtime for packaging
         run: npx electron --version
+      - run: npm run compile
       - run: npm run build:inference
       - run: npm run build:apple-stt-helper -- --release
       - name: Package macOS
