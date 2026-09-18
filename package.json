@@ -80,7 +80,6 @@
     "evaluate:korean-stt": "node scripts/evaluate-korean-stt.mjs"
   },
   "devDependencies": {
-    "@types/node": "24.13.5",
     "electron": "44.4.1",
     "esbuild": "0.28.2",
     "playwright": "1.63.0",
