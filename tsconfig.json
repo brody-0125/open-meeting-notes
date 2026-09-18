@@ -1,0 +1,19 @@
+{
+  // ponytail: noCheck emit until JS-shaped classes get field types. Syntax errors still fail.
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "target": "ES2022",
+    "noCheck": true,
+    "noEmitOnError": true,
+    "skipLibCheck": true,
+    "declaration": false
+  },
+  "include": [
+    "src/**/*.mts",
+    "src/**/*.cts",
+    "test/**/*.mts",
+    "test/**/*.cts",
+    "scripts/**/*.mts"
+  ]
+}

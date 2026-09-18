@@ -88,7 +88,7 @@ if (helperPath) {
 const infoPlist = join(target, 'open-meeting-notes.app/Contents/Info.plist');
 await mergePrivacyPlist(infoPlist);
 
-await cp(join(root, 'src'), join(app, 'src'), { recursive: true });
+await cp(join(root, 'src'), join(app, 'src'), { recursive: true, filter: source => !/\.(mts|cts)$/.test(source) });
 await cp(join(root, 'dist'), join(app, 'dist'), { recursive: true });
 await writeFile(join(app, 'package.json'), JSON.stringify({ name: pkg.name, version: pkg.version, type: 'module', main: 'src/electron/main.mjs' }, null, 2));
 

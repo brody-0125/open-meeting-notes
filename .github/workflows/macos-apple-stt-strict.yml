@@ -19,5 +19,6 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - run: npm run compile
       - run: npm run build:inference
       - run: npm run ci:macos-apple-stt

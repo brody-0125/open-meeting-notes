@@ -32,6 +32,8 @@ npm run build:inference
 npm start
 ```
 
+`npm start`, `npm test`, 패키징은 먼저 `tsc`를 돌립니다. 소스는 `.mts`/`.cts`이고 Electron은 예전과 같이 `.mjs`/`.cjs`를 로드합니다. `npm run compile`만 실행해도 그 파일을 만듭니다.
+
 `npm ci`는 npm 패키지를 받을 때만 네트워크를 씁니다. 런타임 추론은 직접 설치한 모델을 사용합니다.
 
 1. 요청이 뜨면 OS 마이크/화면 캡처 권한을 허용합니다.
@@ -119,9 +121,9 @@ npm run package:macos -- OUTPUT_DIR path/to/installed.json --bundle-models
 
 ## 저장소 구조
 
-- `src/` — 애플리케이션, Electron main/preload, UI, 추론 연결.
+- `src/` — 애플리케이션, Electron main/preload, UI, 추론 연결 (TypeScript. `tsc`가 `.mjs`/`.cjs`를 냄).
 - `scripts/` — 빌드, 패키징, 검증, CI 헬퍼.
-- `test/` — 단위·통합 테스트 (루트 `npm test`는 `test/*.test.mjs`).
+- `test/` — 단위·통합 테스트 (루트 `npm test`는 컴파일 후 `test/*.test.mjs`).
 - `native/macos/` — `omn-speech-helper` (Swift).
 
 ## 기여
