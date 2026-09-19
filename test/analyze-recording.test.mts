@@ -15,6 +15,25 @@ const models = { stt: { backend: 'transformers', modelId: 'tiny', modelHash: 'a'
 const candidate = input => ({ version: 1, revision: 1, items: [{ kind: 'topic', status: 'candidate', text: input.segments[0].rawText,
   evidence: [{ segmentId: input.segments[0].id, quote: input.segments[0].rawText }] }] });
 
+test('transcribe-only skips summary inference', async t => {
+  const root = await fixture(t), calls = [];
+  const execute = async (operation, input) => {
+    calls.push(operation);
+    if (operation === 'plan-summary') return [input.transcript];
+    if (operation !== 'transcribe') return candidate(input.transcript);
+    return [{ id: `${input.key}:0`, jobId: input.key, source: 'microphone', start: 0, end: .01, rawText: 'hello', flags: [] }];
+  };
+  const result = await analyzeRecording({ root, models, execute, mode: 'transcribe' });
+  assert.equal(result.summary, null); assert.equal(result.needsReview, false);
+  assert.ok(calls.every(op => op === 'transcribe'));
+  const summaryOnly = await analyzeRecording({ root, models, execute: (operation, input) => {
+    if (operation === 'transcribe') assert.fail('must use cached transcript');
+    if (operation === 'plan-summary') return [input.transcript];
+    return candidate(input.transcript);
+  }, mode: 'summarize' });
+  assert.ok(summaryOnly.summary);
+});
+
 test('unconfirmed speech is preserved but cannot enter summary; VAD identity invalidates cached STT', async t => {
   const root = await fixture(t), calls = [];
   const execute = async (operation, input) => {
