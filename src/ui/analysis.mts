@@ -7,6 +7,23 @@ const $ = id => document.getElementById(id);
 const bridge = window.meeting;
 const preview = new AudioPreview();
 const pausesPanel = $('analysis-pauses'), pausesList = $('analysis-pause-list');
+function setAnalysisTab(tab: 'transcript' | 'summary') {
+  const transcript = tab === 'transcript';
+  $('tab-transcript').setAttribute('aria-selected', String(transcript));
+  $('tab-summary').setAttribute('aria-selected', String(!transcript));
+  $('tab-transcript').tabIndex = transcript ? 0 : -1;
+  $('tab-summary').tabIndex = transcript ? -1 : 0;
+  $('panel-transcript').hidden = !transcript;
+  $('panel-summary').hidden = transcript;
+}
+function markSelectedRecord(id: string) {
+  for (const button of document.querySelectorAll<HTMLButtonElement>('.record-picker')) {
+    button.classList.toggle('selected', button.dataset.recordId === id);
+  }
+}
+addEventListener('omn-select-record', (event: Event) => markSelectedRecord((event as CustomEvent<string>).detail));
+$('tab-transcript').addEventListener('click', () => setAnalysisTab('transcript'));
+$('tab-summary').addEventListener('click', () => setAnalysisTab('summary'));
 bridge.onPlaybackStopped(() => preview.stop());
 let active, completedRunId, completedRecordId, completedLanguage;
 bridge.onInferenceRequest(async message => {
@@ -26,7 +43,8 @@ bridge.onInferenceRequest(async message => {
         language: input.language, backend: input.backend, locale: input.locale, preset: input.preset };
     } else $('analysis-status').textContent = message.operation === 'reconcile' ? '전체 원문과 구간별 후보를 대조해 통합하고 있습니다…' : message.operation === 'plan-summary' ? '전사를 모델의 입력 한도에 맞춰 나누고 있습니다…' : `구간 ${(input.partIndex ?? 0) + 1}/${input.totalParts ?? 1} · 원문 근거를 확인하며 요약하고 있습니다…`;
     if (run !== active || run.cancelled) return;
-    let result = message.operation === 'transcribe' && input.backend === 'apple'
+    const skipWhisper = message.operation === 'transcribe' && measurement?.speechRanges?.length === 0;
+    let result = skipWhisper ? [] : message.operation === 'transcribe' && input.backend === 'apple'
       ? await bridge.transcribeApple({ audio: input.audio, locale: input.locale, preset: input.preset })
       : await run.client.run(message.operation, input);
     if (message.operation === 'transcribe') result = markUnconfirmedSpeech(result, input.audio, measurement);
@@ -36,7 +54,7 @@ bridge.onInferenceRequest(async message => {
       ...(['OUTPUT_LIMIT', 'CONTEXT_LIMIT'].includes(error.code) ? { errorCode: error.code } : {}) }).catch(() => {});
   }
 });
-export async function analyze(id, language = $('analysis-language').value) {
+export async function analyze(id, language = $('analysis-language').value, mode = 'full') {
   if (active) return;
   preview.stop();
   completedRunId = undefined; $('analysis-export').hidden = true; $('export-status').textContent = '';
@@ -44,13 +62,18 @@ export async function analyze(id, language = $('analysis-language').value) {
   $('correction-status').textContent = '';
   const run = active = { id: crypto.randomUUID(), client: new InferenceClient(), vadClient: new InferenceClient(), cancelled: false };
   $('analysis').hidden = false; $('analysis-cancel').hidden = false;
-  $('analysis-status').textContent = '녹음의 무결성을 검증하고 있습니다…';
+  setAnalysisTab(mode === 'summarize' ? 'summary' : 'transcript');
+  dispatchEvent(new CustomEvent('omn-select-record', { detail: id }));
+  $('analysis').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  $('analysis-status').textContent = mode === 'summarize' ? '저장된 전사로 요약을 준비하고 있습니다…' :
+    mode === 'transcribe' ? '녹음의 무결성을 검증한 뒤 전사합니다…' : '녹음의 무결성을 검증하고 있습니다…';
   $('transcript').replaceChildren(); $('summary').replaceChildren();
   pausesList.replaceChildren(); pausesPanel.hidden = true;
   try {
-    const result = await bridge.analyze(id, run.id, language);
+    const result = await bridge.analyze(id, run.id, language, mode);
     if (run.cancelled) return;
     renderAnalysis(result);
+    if (mode === 'summarize' || (mode === 'full' && result.summary)) setAnalysisTab('summary');
     completedRunId = run.id; $('analysis-export').hidden = false;
     completedRecordId = id; completedLanguage = language;
   } catch (error) {
