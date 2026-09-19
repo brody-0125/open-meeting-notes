@@ -8,6 +8,8 @@ test/**/*.mjs
 test/**/*.cjs
 scripts/**/*.mjs
 
+.ci-fixtures/
+
 test-results/
 playwright-report/
 *.log
@@ -33,6 +35,7 @@ playwright-report/
 *.gguf
 *.safetensors
 *.wav
+!test/fixtures/speech.wav
 *.pcm
 *.webm
 *.pfx
