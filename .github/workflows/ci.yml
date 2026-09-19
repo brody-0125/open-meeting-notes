@@ -28,7 +28,10 @@ jobs:
       - name: Whisper STT smoke
         env:
           OMN_STT_FIXTURE: ${{ github.workspace }}/.ci-fixtures/stt-whisper-tiny
-        run: npm run test:stt
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb
+          xvfb-run -a npm run test:stt
       - run: npm test
       - run: npm run test:package-config
 
