@@ -43,6 +43,8 @@ test('app UI consent, synthetic acquisition, recording and durable stop', { time
   await page.getByText('녹음 중', { exact: true }).waitFor();
   await page.waitForFunction(() => ['microphone', 'remote'].every(source =>
     document.getElementById(`${source}-level`).value > -10));
+  assert.equal(await page.locator('#timeline').isHidden(), false);
+  assert.ok(await page.evaluate(() => document.getElementById('timeline-canvas').width > 0));
   await page.screenshot({ path: join(screenshots, 'recording.png') });
   await page.waitForTimeout(300);
   await page.getByRole('button', { name: '일시정지', exact: true }).click({ timeout: 2000 });
@@ -102,7 +104,7 @@ test('app UI consent, synthetic acquisition, recording and durable stop', { time
     env: { ...process.env, OMN_APP_TEST_DIRECTORY: directory } });
   const reopened = await app.firstWindow();
   await reopened.getByRole('button', { name: '오디오 검증', exact: true }).click();
-  await reopened.getByText(/완료 확인 ·/).waitFor();
+  await reopened.locator('#detail-status').filter({ hasText: /완료 확인 ·/ }).waitFor();
   assert.equal(await reopened.locator('#records li').count(), 1);
   assert.equal(await reopened.evaluate(async () => window.meeting.inspect('../outside').then(() => false, () => true)), true);
   await reopened.screenshot({ path: join(screenshots, 'library.png'), fullPage: true });
