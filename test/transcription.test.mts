@@ -13,6 +13,11 @@ test('exact digital silence yields no evidence while quiet nonzero audio still r
   const controller = new AbortController(); controller.abort();
   await assert.rejects(transcribeChunk(() => assert.fail('cancelled'), silent, { signal: controller.signal }), { name: 'AbortError' });
 });
+test('looping non-speech hallucination is not kept as transcript evidence', async () => {
+  const text = Array.from({ length: 40 }, (_, i) => i % 2 ? '3.' : '2.').join(' ');
+  assert.deepEqual(await transcribeChunk(async () => ({ chunks: [{ text, timestamp: [0, 1] }] }), input()), []);
+  assert.equal((await transcribeChunk(async () => ({ chunks: [{ text: '회의를 시작합니다', timestamp: [0.2, 1.8] }] }), input()))[0].rawText, '회의를 시작합니다');
+});
 test('C05 rejects incorrect rate, oversize and non-finite audio before inference', async () => {
   let calls = 0;
   const run = async () => { calls++; };

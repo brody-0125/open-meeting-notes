@@ -12,7 +12,7 @@ export function sttSettingsHash({ stt, language, vadModelHash }) {
   const shared = {
     version: 2,
     language,
-    preprocessing: 'web-audio-v4-segment-speech-review',
+    preprocessing: 'web-audio-v5-drop-looping-transcript',
     vadModelHash: vadModelHash ?? null,
     vadThreshold: .5,
     windowSeconds: 30,
