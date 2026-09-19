@@ -91,6 +91,19 @@ Copy and fill hashes from your trusted install procedure:
 | Package | `npm run package:macos -- … installed.json --bundle-models` | Helper in `Resources/helpers/`; plist speech usage string |
 | App analysis | Apple `installed.json`, language `ko` | Transcript segments; no Whisper worker load |
 
+## Local Whisper smoke (P0)
+
+Track A maintainer routine after models are prepared once (network on prepare only; tests deny external fetch).
+
+| Tier | Command | Fixtures |
+|------|---------|----------|
+| P0 | `npm run smoke:stt-local` | `OMN_STT_FIXTURE`, `OMN_SUMMARY_FIXTURE` (see script usage) |
+| P0+ (release) | `npm run test:app-models`, `npm run test:korean-small-flow` | above + `OMN_VAD_FIXTURE`, `OMN_KOREAN_SPEECH`, `whisper-small` STT pack |
+
+Pinned English speech: `test/fixtures/speech.wav` + `speech.wav.sha256` (shared with CI smoke in #12). `prepare-stt-test` copies it into the STT fixture directory. Regenerate on Windows with `scripts/prepare-speech-test.ps1` (Microsoft Zira), then update the pinned files.
+
+Prepare helpers: `scripts/prepare-stt-test.mjs`, `scripts/prepare-summary-test.mjs`, `scripts/prepare-vad-test.mjs`. Env: `OMN_STT_FIXTURE`, `OMN_SUMMARY_FIXTURE`, `OMN_VAD_FIXTURE`.
+
 ## CI
 
 | Workflow | Runner | Checks |

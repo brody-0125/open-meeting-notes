@@ -33,6 +33,7 @@ playwright-report/
 *.gguf
 *.safetensors
 *.wav
+!test/fixtures/speech.wav
 *.pcm
 *.webm
 *.pfx

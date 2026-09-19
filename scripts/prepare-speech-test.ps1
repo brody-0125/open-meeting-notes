@@ -1,3 +1,5 @@
+# Windows dev-only: synthesizes speech.wav (16 kHz mono). CI and prepare-stt-test use test/fixtures/speech.wav instead.
+# After changing text or voice, copy output to test/fixtures/speech.wav and update speech.wav.sha256.
 param([Parameter(Mandatory=$true)][string]$FixtureDirectory)
 $ErrorActionPreference = 'Stop'
 $fixtureRoot = (Resolve-Path -LiteralPath $FixtureDirectory).Path

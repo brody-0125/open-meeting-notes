@@ -2,8 +2,13 @@
 // Downloads public model artifacts; sends no audio or transcript.
 import { mkdir, writeFile, copyFile, readFile } from 'node:fs/promises';
 import { join, resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { build } from 'esbuild';
+
+function sha256(bytes: Buffer) {
+  return createHash('sha256').update(bytes).digest('hex');
+}
 const root = resolve(process.argv[2] ?? (() => { throw new Error('fixture directory required'); })());
 const modelId = process.argv[3] ?? 'whisper-tiny';
 const revision = { 'whisper-tiny': 'ff4177021cc41f7db950912b73ea4fdf7d01d8e7', 'whisper-small': '36050c46d777d46dc4b5f43f6d90574fc38f8732' }[modelId];
@@ -33,5 +38,10 @@ for (const name of ['ort-wasm-simd-threaded.jsep.mjs', 'ort-wasm-simd-threaded.j
 const bytes = Buffer.from(JSON.stringify({ version: 1, id: `${modelId}-test`, engine: 'transformers', engineVersion: '4.3.0', files }, null, 2));
 await writeFile(join(root, 'manifest.json'), bytes);
 await writeFile(join(root, 'fixture-approval.json'), JSON.stringify({ manifestHash: createHash('sha256').update(bytes).digest('hex'), revision, modelId }));
+const pinnedWav = fileURLToPath(new URL('../test/fixtures/speech.wav', import.meta.url));
+const pinnedSha = (await readFile(fileURLToPath(new URL('../test/fixtures/speech.wav.sha256', import.meta.url)), 'utf8')).trim().toLowerCase();
+const speech = await readFile(pinnedWav);
+if (sha256(speech) !== pinnedSha) throw new Error('pinned speech.wav sha256 mismatch; update test/fixtures after regenerating with prepare-speech-test.ps1');
+await copyFile(pinnedWav, join(root, 'speech.wav'));
 await build({ entryPoints: ['src/inference/whisper.mjs'], outfile: join(root, 'whisper.mjs'), bundle: true, platform: 'browser', format: 'esm' });
 console.log('Prepared test-only manifest approval; not a production trust/signing mechanism.');
