@@ -39,6 +39,35 @@ gh release create v1.0.0 --title "1.0.0" --notes-file CHANGELOG_SNIPPET.md
 
 Pass the `[1.0.0]` section from the changelog as `--notes` or `--notes-file`.
 
+## Korean synthetic STT regression (P1)
+
+Optional **regression thermometer** on the fixed six-sentence corpus in [`test/fixtures/korean-stt.json`](test/fixtures/korean-stt.json). It is not a release pass/fail gate and does not replace P0+ app flows (`test:korean-small-flow`).
+
+**Baseline (committed):** [`reports/baseline/korean-whisper-tiny.json`](reports/baseline/korean-whisper-tiny.json) — `corpusSha256`, per-case `audioSha256`, CER, and literal checks from `whisper-tiny` q8/WASM.
+
+**Regenerate speech (Windows, one-time per machine):** Microsoft **Heami Desktop** via SAPI.
+
+```powershell
+$Fixture = Join-Path $PWD '.omn-stt-fixture'
+$Speech = Join-Path $PWD '.omn-korean-speech'
+node scripts/prepare-stt-test.mjs $Fixture whisper-tiny
+.\scripts\prepare-korean-speech.ps1 -OutputDirectory $Speech
+```
+
+**Evaluate and compare:**
+
+```powershell
+$env:OMN_STT_FIXTURE = $Fixture
+npm run evaluate:korean-stt -- $Speech reports/korean-whisper-tiny.json whisper-tiny
+npm run compare:korean-stt -- reports/baseline/korean-whisper-tiny.json reports/korean-whisper-tiny.json
+```
+
+Use `whisper-small` the same way when the team runs a release or monthly check; there is no committed small baseline yet.
+
+**PRs and release notes:** After STT-related changes, run the compare command and note **microCer delta** and any **new literal misses** in the PR description or GitHub release notes. The repo does not enforce a CER threshold in CI.
+
+**Corpus changes:** Edit only `test/fixtures/korean-stt.json` and regenerate `.wav` with `prepare-korean-speech.ps1`. Keep stable `id`, reference `text`, `checks`, and recorded `audioSha256` in the baseline report; refresh the committed baseline when the corpus or voice changes.
+
 ## Post-release
 
 - Open `[Unreleased]` in `CHANGELOG.md` for the next cycle.
