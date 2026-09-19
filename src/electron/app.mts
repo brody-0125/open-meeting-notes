@@ -156,8 +156,9 @@ export function startApp({ directory, show = true, confirm, modelConfig, onBlock
         return result;
       } finally { previewing = false; }
     });
-    handle('analyze', async (_event, selectedId, runId, language) => {
+    handle('analyze', async (_event, selectedId, runId, language, mode = 'full') => {
       if (typeof runId !== 'string' || !/^[a-f0-9-]{36}$/.test(runId)) throw new Error('invalid analysis request');
+      if (!['full', 'transcribe', 'summarize'].includes(mode)) throw new Error('invalid analyze mode');
       if (analysis || exporting || reviewing || preparing || finalizing || isRecordingActive()) throw new Error('recording or analysis is busy');
       const controller = new AbortController();
       lastAnalysis = undefined;
@@ -165,7 +166,7 @@ export function startApp({ directory, show = true, confirm, modelConfig, onBlock
       try {
         const { path } = await library.directory(selectedId);
         if (models.stt?.backend === 'apple') await ensureAppleSttReady(models.stt, language, locale => appleStt.probe(locale));
-        const result = await analyzeRecording({ root: path, models, language, signal: controller.signal,
+        const result = await analyzeRecording({ root: path, models, language, mode, signal: controller.signal,
           execute: (operation, input) => channel.request(operation, input, controller.signal) });
         controller.signal.throwIfAborted();
         const keys = reviewKeys(result, models.summary.modelHash), reviews = new ReviewStore(join(path, 'reviews'));
