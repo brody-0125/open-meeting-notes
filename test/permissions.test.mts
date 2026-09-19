@@ -33,8 +33,9 @@ test('only exact app main frame may arm and request audio permission', () => {
   assert.throws(() => f.gate.arm({ ...f.event, senderFrame: { url: APP_URL } }), /untrusted/);
   f.gate.arm(f.event);
   assert.equal(f.gate.request(f.contents, 'media', f.details), true);
+  assert.equal(f.gate.request(f.contents, 'media', { ...f.details, mediaTypes: [] }), true);
   for (const details of [undefined, { ...f.details, isMainFrame: false }, { ...f.details, requestingUrl: 'omn://app/other.html' },
-    { ...f.details, securityOrigin: 'https://app' }, { ...f.details, mediaTypes: ['audio', 'video'] }, { ...f.details, mediaTypes: [] }]) {
+    { ...f.details, securityOrigin: 'https://app' }, { ...f.details, mediaTypes: ['audio', 'video'] }, { ...f.details, mediaTypes: ['video'] }]) {
     assert.equal(f.gate.request(f.contents, 'media', details), false);
   }
   assert.equal(f.gate.request({}, 'media', f.details), false);

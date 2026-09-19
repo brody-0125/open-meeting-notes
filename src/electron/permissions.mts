@@ -38,8 +38,9 @@ export class CapturePermissions {
   request(contents, permission, details) {
     if (!this.#document(contents, details)) return false;
     if (permission === 'display-capture') return true;
-    return permission === 'media' && appOrigin(details.securityOrigin) && Array.isArray(details.mediaTypes) &&
-      details.mediaTypes.length === 1 && details.mediaTypes[0] === 'audio';
+    if (permission !== 'media' || !appOrigin(details.securityOrigin) || !Array.isArray(details.mediaTypes)) return false;
+    // Electron 44 getDisplayMedia requests media with no types before the picker; camera stays denied.
+    return details.mediaTypes.length === 0 || details.mediaTypes.length === 1 && details.mediaTypes[0] === 'audio';
   }
   displayTicket(request) { return this.display(request) ? this.#grant : undefined; }
   display(request, ticket = this.#grant) {

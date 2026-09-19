@@ -13,8 +13,10 @@ import { reconciliationInput, validateReconciliation } from './inference/reconci
 import { sttSettingsHash, assertAnalysisLanguageMatchesSttLocale } from './stt-settings.mjs';
 const sha = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 
-export async function analyzeRecording({ root, models, execute, signal, language = 'ko' }) {
-  if (!models?.stt || !models?.summary) throw new Error('local models required');
+export async function analyzeRecording({ root, models, execute, signal, language = 'ko', mode = 'full' }) {
+  if (!['full', 'transcribe', 'summarize'].includes(mode)) throw new Error('invalid analyze mode');
+  if (!models?.stt) throw new Error('local models required');
+  if (mode !== 'transcribe' && !models?.summary) throw new Error('local models required');
   if (!['ko', 'en'].includes(language)) throw new Error('unsupported language');
   assertAnalysisLanguageMatchesSttLocale(models.stt, language);
   signal?.throwIfAborted();
@@ -24,11 +26,13 @@ export async function analyzeRecording({ root, models, execute, signal, language
   const jobs = new JobStore(join(root, 'jobs'));
   const audio = new ChunkStore(root), completed = [];
   const settingsHash = sttSettingsHash({ stt: models.stt, language, vadModelHash: models.vad?.modelHash ?? null });
+  const transcribe = mode !== 'summarize';
   for (const source of ['microphone', 'remote']) {
     const config = { sessionId: recording.sessionId, source, revision: 1, modelHash: models.stt.modelHash, settingsHash,
       pauses: recording.pauses ?? [] };
-    for await (const job of transcriptionJobs(audio, recording.index, jobs, config, (window, { key }) =>
-      execute('transcribe', { window, key, language, ...models.stt, vadModelHash: models.vad?.modelHash ?? null }), { signal })) completed.push(job);
+    for await (const job of transcriptionJobs(audio, recording.index, jobs, config, (window, { key }) => transcribe
+      ? execute('transcribe', { window, key, language, ...models.stt, vadModelHash: models.vad?.modelHash ?? null })
+      : Promise.reject(new Error('saved transcript required before summary')), { signal })) completed.push(job);
   }
   const transcript = await new CorrectionStore(join(root, 'corrections')).load(assembleTranscript(completed, 1,
     { pauses: recording.pauses ?? [], formats: recording.formats }));
@@ -37,6 +41,7 @@ export async function analyzeRecording({ root, models, execute, signal, language
     segment.speechReview = await speechReviews.get(speechReviewKey(transcript, segment));
   signal?.throwIfAborted();
   if (transcript.conflicts.length || transcript.gaps.length || hasUnconfirmedSpeech(transcript)) return { transcript, summary: null, needsReview: true };
+  if (mode === 'transcribe') return { transcript, summary: null, needsReview: false };
   const input = summaryInput(transcript);
   if (!input.segments.length) return { transcript, summary: null, needsReview: false };
   const descriptor = { version: 1, sessionId: recording.sessionId, kind: 'summarize', revision: input.revision,

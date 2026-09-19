@@ -1,14 +1,55 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>open-meeting-notes</title><link rel="stylesheet" href="/app.css"></head>
 <body><header><strong>open-meeting-notes</strong><span>이 기기에 저장</span></header>
-<main><section class="heading"><h1>회의를 기록하세요.</h1><p>마이크와 컴퓨터 소리를 함께 녹음합니다.</p></section>
+<div class="app-shell">
+<div class="workspace">
+<section class="heading"><h1>회의를 기록하세요.</h1><p>마이크와 컴퓨터 소리를 함께 녹음합니다. 오른쪽 목록에서 기록을 고르면 이곳에서 검증·전사·요약을 실행합니다.</p></section>
 <section class="recorder" aria-labelledby="state"><div class="status"><span id="dot"></span><h2 id="state" aria-live="polite">녹음 대기</h2></div>
 <output id="timer" aria-label="녹음 경과 시간">00:00</output>
+<div id="timeline" hidden>
+  <canvas id="timeline-canvas" width="640" height="92" aria-hidden="true"></canvas>
+  <div class="timeline-keys"><span>마이크</span><span>공유 오디오</span></div>
+</div>
 <div class="sources"><div><span>내 목소리</span><strong>마이크</strong><meter id="microphone-level" min="-60" max="0" value="-60" aria-label="마이크 입력 음량" aria-valuetext="측정 안 함"></meter><small id="microphone-level-text">측정 안 함</small></div><div><span>회의 소리</span><strong>공유 오디오</strong><meter id="remote-level" min="-60" max="0" value="-60" aria-label="공유 오디오 입력 음량" aria-valuetext="측정 안 함"></meter><small id="remote-level-text">측정 안 함</small></div></div>
 <div class="actions"><button id="primary">녹음 준비</button><button id="pause" class="secondary" hidden>일시정지</button><button id="cancel" class="secondary" hidden>취소</button></div>
-<label class="language-label"><input id="silence-enabled" type="checkbox" checked disabled> 3분 무음 시 30초 예고 후 자동 종료</label><p id="silence-model"></p><p id="silence-status" role="status"></p><button id="silence-extend" class="secondary" hidden>녹음 계속 · 3분 연장</button><p id="message" role="status">시작 전에 녹음 승인과 입력 선택을 진행합니다.</p></section>
-<section class="notes"><h2>기록 안내</h2><p>녹음은 이 기기에 저장됩니다. 종료 후 마지막 오디오의 저장이 끝날 때까지 창을 열어두세요.</p><p>저장된 기록에서 전사·요약을 실행하고, 요약 후보의 근거를 원문과 비교해 검토하세요.</p><p id="saved" hidden></p></section>
-<section class="library" aria-labelledby="library-title"><div class="library-heading"><h2 id="library-title">저장된 기록</h2><button id="refresh" class="secondary">목록 새로고침</button></div><p id="library-message" role="status">최근 기록을 불러오고 있습니다.</p><ul id="records"></ul></section>
-<p id="model-status"></p><label class="language-label">전사 언어 <select id="analysis-language"><option value="ko">한국어</option><option value="en">영어</option></select></label>
-<section id="analysis" hidden aria-labelledby="analysis-title"><div class="library-heading"><h2 id="analysis-title">전사와 요약</h2><button id="analysis-cancel" class="secondary">분석 취소</button></div><p id="analysis-status" role="status"></p><section id="analysis-pauses" hidden><h3>사용자 일시정지</h3><p>다음 구간은 녹음하지 않았으며, 해당 구간의 발언은 전사·요약에 포함되지 않습니다.</p><ul id="analysis-pause-list"></ul></section><button id="analysis-export" class="secondary" hidden>Markdown 저장</button><p id="export-status" role="status"></p><h3>전사 원문</h3><p id="correction-status" role="status"></p><ol id="transcript"></ol><h3>요약 후보와 근거</h3><p id="review-status" role="status"></p><ul id="summary"></ul></section>
-</main><footer>open-meeting-notes · 개발 버전</footer><script type="module" src="/app.mjs"></script></body></html>
+<label class="language-label"><input id="silence-enabled" type="checkbox" checked disabled> 3분 무음 시 30초 예고 후 자동 종료</label><p id="silence-model"></p><p id="silence-status" role="status"></p><button id="silence-extend" class="secondary" hidden>녹음 계속 · 3분 연장</button><p id="message" role="status">시작 전에 녹음 승인과 입력 선택을 진행합니다.</p><p id="saved" hidden></p></section>
+<section id="record-detail" class="record-detail" hidden aria-labelledby="record-detail-title">
+<h2 id="record-detail-title">선택한 기록</h2>
+<p id="detail-date" class="detail-primary"></p>
+<p id="detail-id" class="detail-muted"></p>
+<p id="detail-status" role="status">검증 전</p>
+<div class="detail-actions">
+<button type="button" id="detail-verify" class="secondary">오디오 검증</button>
+<button type="button" id="detail-recover" class="secondary" hidden>검증된 오디오 복구 저장</button>
+<button type="button" id="detail-transcribe" class="secondary" hidden>전사만</button>
+<button type="button" id="detail-summarize" class="secondary" hidden>요약만</button>
+<button type="button" id="detail-analyze" hidden>전사·요약</button>
+</div>
+<label class="language-label">전사 언어 <select id="analysis-language"><option value="ko">한국어</option><option value="en">영어</option></select></label>
+</section>
+<p id="model-status" class="model-line"></p>
+<section id="analysis" class="analysis-panel" hidden aria-labelledby="analysis-title">
+<div class="library-heading"><h2 id="analysis-title">분석 결과</h2><button id="analysis-cancel" class="secondary">분석 취소</button></div>
+<p id="analysis-status" role="status"></p>
+<div class="analysis-tabs" role="tablist" aria-label="전사와 요약">
+<button type="button" class="analysis-tab" role="tab" id="tab-transcript" aria-controls="panel-transcript" aria-selected="true">전사</button>
+<button type="button" class="analysis-tab" role="tab" id="tab-summary" aria-controls="panel-summary" aria-selected="false" tabindex="-1">요약</button>
+</div>
+<div id="panel-transcript" class="analysis-tabpanel" role="tabpanel" aria-labelledby="tab-transcript">
+<section id="analysis-pauses" hidden><h3>사용자 일시정지</h3><p>다음 구간은 녹음하지 않았으며, 해당 구간의 발언은 전사·요약에 포함되지 않습니다.</p><ul id="analysis-pause-list"></ul></section>
+<p id="correction-status" role="status"></p>
+<ol id="transcript"></ol>
+</div>
+<div id="panel-summary" class="analysis-tabpanel" role="tabpanel" aria-labelledby="tab-summary" hidden>
+<p id="review-status" role="status"></p>
+<ul id="summary"></ul>
+</div>
+<button id="analysis-export" class="secondary" hidden>Markdown 저장</button>
+<p id="export-status" role="status"></p>
+</section>
+</div>
+<aside class="library-rnb" aria-labelledby="library-title">
+<section class="library"><div class="library-heading"><h2 id="library-title">저장된 기록</h2><button id="refresh" class="secondary">목록 새로고침</button></div><p id="library-message" role="status">최근 기록을 불러오고 있습니다.</p><ul id="records"></ul></section>
+</aside>
+</div>
+<footer>open-meeting-notes · 개발 버전</footer><script type="module" src="/app.mjs"></script></body></html>

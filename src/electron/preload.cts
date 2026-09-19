@@ -1,7 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('meeting', {
   models: () => ipcRenderer.invoke('meeting:models'),
-  analyze: (id, runId, language) => ipcRenderer.invoke('meeting:analyze', id, runId, language),
+  analyze: (id, runId, language, mode) => ipcRenderer.invoke('meeting:analyze', id, runId, language, mode),
   cancelAnalysis: runId => ipcRenderer.invoke('meeting:cancel-analysis', runId),
   exportAnalysis: runId => ipcRenderer.invoke('meeting:export-analysis', runId),
   reviewAnalysis: (runId, group, item, state) => ipcRenderer.invoke('meeting:review-analysis', runId, group, item, state),
