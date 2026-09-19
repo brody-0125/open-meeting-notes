@@ -17,6 +17,18 @@ jobs:
       - run: npm ci
       - run: npm run compile
       - run: npm run build:inference
+      - uses: actions/cache@v4
+        id: stt-fixture-cache
+        with:
+          path: .ci-fixtures/stt-whisper-tiny
+          key: omn-stt-whisper-tiny-${{ hashFiles('scripts/prepare-stt-test.mts', 'test/fixtures/speech.wav.sha256') }}
+      - name: Prepare STT fixture
+        if: stt-fixture-cache.outputs.cache-hit != 'true'
+        run: node scripts/prepare-stt-test.mjs .ci-fixtures/stt-whisper-tiny whisper-tiny
+      - name: Whisper STT smoke
+        env:
+          OMN_STT_FIXTURE: ${{ github.workspace }}/.ci-fixtures/stt-whisper-tiny
+        run: npm run test:stt
       - run: npm test
       - run: npm run test:package-config
 

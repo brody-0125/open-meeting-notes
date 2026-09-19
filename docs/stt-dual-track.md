@@ -95,7 +95,7 @@ Copy and fill hashes from your trusted install procedure:
 
 | Workflow | Runner | Checks |
 |----------|--------|--------|
-| [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) `test` | `ubuntu-latest` | `npm test`, `test:package-config` (Windows packaging) |
+| [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) `test` | `ubuntu-latest` | `npm test`, `test:package-config` (Windows packaging), `test:stt` (Whisper tiny + pinned `test/fixtures/speech.wav`) |
 | same `macos-apple-stt` | `macos-15` | `npm run ci:macos-apple-stt` — Swift release build, helper probe/transcribe framing, macOS deployment tests |
 | [`.github/workflows/macos-apple-stt-strict.yml`](../.github/workflows/macos-apple-stt-strict.yml) | `macos-26` (when available) | `OMN_APPLE_STT_STRICT=1` — `SpeechTranscriber` must report `available` |
 
