@@ -68,7 +68,7 @@ for (const mode of ['none', 'paused', 'resumed']) test(`Main crash preserves ack
   await page.getByText('미완료 기록 · 복구 검토가 필요합니다.', { exact: true }).waitFor();
   assert.equal(await page.locator('#records li').count(), 1);
   await page.getByRole('button', { name: '검증된 오디오 복구 저장', exact: true }).click({ timeout: 2000 });
-  const recoveredStatus = page.locator('#records li p').filter({ hasText: '복구 오디오 저장:' });
+  const recoveredStatus = page.locator('#detail-status').filter({ hasText: '복구 오디오 저장:' });
   await recoveredStatus.waitFor();
   const exportPath = (await recoveredStatus.innerText()).split('복구 오디오 저장: ')[1];
   const manifest = JSON.parse(await readFile(join(exportPath, 'recovery.json'), 'utf8'));

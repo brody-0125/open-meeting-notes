@@ -95,7 +95,8 @@ test('packaged app runs installed local VAD, STT and summary through its shipped
   const noiseBefore = await noise.index();
   await page.getByRole('button', { name: '목록 새로고침', exact: true }).click();
   await page.locator('#analysis-language').selectOption('ko');
-  await page.locator('#records li').filter({ hasText: noiseId }).getByRole('button', { name: '전사·요약', exact: true }).click();
+  await page.locator('.record-picker').filter({ hasText: noiseId }).click();
+  await page.getByRole('button', { name: '전사·요약', exact: true }).click();
   await page.locator('#analysis-export').waitFor({ state: 'visible', timeout: 60000 });
   assert.match(await page.locator('#analysis-status').innerText(), /요약을 보류/);
   assert.equal(await page.locator('#summary blockquote').count(), 0);

@@ -5,7 +5,7 @@ import { startSilence } from '/silence-ui.mjs';
 const $ = id => document.getElementById(id);
 const bridge = window.meeting;
 let phase = 'idle', session, capture, cancellation, interval, started, generation = 0;
-let silence, installedVad, restartSilence;
+let silence, installedVad, restartSilence, timeline = [];
 function view(state, title, button, message, disabled = false) {
   phase = state; document.body.dataset.state = state;
   if (state !== 'recording') updateLevels(null);
@@ -18,6 +18,42 @@ function view(state, title, button, message, disabled = false) {
   $('silence-enabled').disabled = !installedVad || !['idle', 'saved', 'failed', 'ready'].includes(state);
 }
 function stopClock() { clearInterval(interval); }
+function resetTimeline() {
+  timeline = [];
+  $('timeline').hidden = true;
+}
+function height(rms) { return rms > 0 ? Math.max(0, Math.min(1, (20 * Math.log10(rms) + 60) / 60)) : 0; }
+function drawTimeline() {
+  const canvas = $('timeline-canvas'), cssW = canvas.clientWidth, cssH = 92, dpr = Math.max(1, devicePixelRatio || 1);
+  if (!cssW) return;
+  if (canvas.width !== Math.floor(cssW * dpr) || canvas.height !== Math.floor(cssH * dpr)) {
+    canvas.width = Math.floor(cssW * dpr); canvas.height = Math.floor(cssH * dpr);
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cssW, cssH);
+  const lane = (cssH - 6) / 2, col = 3, slice = timeline.slice(-(Math.floor(cssW / col) || 1));
+  const x0 = cssW - slice.length * col;
+  for (let i = 0; i < slice.length; i++) {
+    const s = slice[i], x = x0 + i * col;
+    if (s.paused) { ctx.fillStyle = '#c9d4cf'; ctx.fillRect(x + 1, 6, 1, cssH - 12); continue; }
+    ctx.fillStyle = '#176952';
+    const h1 = Math.max(2, s.mic * (lane - 8));
+    ctx.fillRect(x, 3 + (lane - h1) / 2, col - 1, h1);
+    ctx.fillStyle = '#3d7ea6';
+    const h2 = Math.max(2, s.remote * (lane - 8));
+    ctx.fillRect(x, lane + 3 + (lane - h2) / 2, col - 1, h2);
+  }
+  ctx.fillStyle = '#be493f';
+  ctx.fillRect(cssW - 2, 4, 2, cssH - 8);
+}
+function appendTimeline(levels, paused) {
+  timeline.push({ mic: paused ? 0 : height(levels?.microphone), remote: paused ? 0 : height(levels?.remote), paused: Boolean(paused) });
+  if (timeline.length > 2400) timeline = timeline.slice(-2400);
+  $('timeline').hidden = false;
+  if ($('timeline-canvas').clientWidth) drawTimeline();
+  else requestAnimationFrame(drawTimeline);
+}
 function updateLevels(levels) {
   for (const source of ['microphone', 'remote']) {
     const meter = $(`${source}-level`), rms = levels?.[source];
@@ -26,6 +62,8 @@ function updateLevels(levels) {
     meter.setAttribute('aria-valuetext', rms === undefined ? '측정 안 함' : rms === 0 ? '신호 없음' : `${db.toFixed(0)} dBFS`);
     $(`${source}-level-text`).textContent = rms === undefined ? '측정 안 함' : rms === 0 ? '신호 없음' : `${db.toFixed(0)} dBFS`;
   }
+  if (phase === 'paused' || phase === 'pausing') appendTimeline(null, true);
+  else if (levels && (phase === 'preflight' || phase === 'recording' || phase === 'resuming')) appendTimeline(levels, false);
 }
 async function fail(error, expected = generation) {
   if (expected !== generation) return;
@@ -48,6 +86,7 @@ async function stop() {
     cancellation?.abort();
     if (capture) await capture.abort('user cancelled preparation').catch(() => {});
     await bridge.abort(session.id, 'user cancelled preparation').catch(() => {}); session = undefined;
+    resetTimeline();
     view('idle', '녹음 대기', '녹음 준비', '녹음 준비를 취소했습니다.'); return;
   }
   if (!['recording', 'pausing', 'paused', 'resuming'].includes(phase)) return;
@@ -60,6 +99,8 @@ async function stop() {
     $('saved').textContent = `저장된 기록: ${session.id}`; $('saved').hidden = false;
     view('saved', '녹음 저장 완료', '새 녹음 준비', '두 입력의 오디오를 이 기기에 저장했습니다.');
     await refreshRecords();
+    const saved = lastRecords.find(record => record.id === session.id);
+    if (saved) selectRecord(saved);
   } catch (error) { await fail(error); }
 }
 $('primary').addEventListener('click', async () => {
@@ -69,6 +110,7 @@ $('primary').addEventListener('click', async () => {
       view('preparing', '녹음 승인 대기', '승인 대기', '승인 창에서 진행 여부를 선택하세요.', true);
       capture = undefined; restartSilence = undefined; $('saved').hidden = true; $('timer').textContent = '00:00';
       $('silence-status').textContent = '';
+      resetTimeline();
       session = await bridge.prepare();
       if (!session) { view('idle', '녹음 대기', '녹음 준비', '녹음 준비를 취소했습니다.'); return; }
       view('ready', '입력을 선택해 주세요', '입력 선택 및 확인', '공유 오디오와 마이크를 선택한 뒤 음량을 확인하세요.');
@@ -144,61 +186,112 @@ $('cancel').addEventListener('click', () => { void stop().catch(fail); });
 bridge.onStopRequested(() => { void stop().catch(fail); });
 $('silence-extend').addEventListener('click', () => silence?.extend());
 
-let loadingRecords = false;
+let loadingRecords = false, selectedRecordId, lastRecords = [], inspectHints = new Map();
+function inspectHintText(entry) {
+  if (!entry) return '선택하여 상세 보기';
+  if (entry.hint) return entry.hint;
+  if (entry.kind === 'recover') return entry.text.slice(0, 48);
+  return entry.text;
+}
+function applyDetailInspect(entry) {
+  $('detail-status').textContent = entry?.text ?? '검증 전';
+  $('detail-recover').hidden = !entry || entry.state === 'complete';
+}
+function selectRecord(record) {
+  selectedRecordId = record.id;
+  $('record-detail').hidden = false;
+  $('detail-date').textContent = new Date(record.modifiedAt).toLocaleString('ko-KR');
+  $('detail-id').textContent = record.id;
+  applyDetailInspect(inspectHints.get(record.id));
+  dispatchEvent(new CustomEvent('omn-select-record', { detail: record.id }));
+}
+function updateAnalysisButtons(models) {
+  $('detail-transcribe').hidden = !models.stt;
+  const both = models.stt && models.summary;
+  $('detail-summarize').hidden = !both;
+  $('detail-analyze').hidden = !both;
+}
+async function inspectSelected() {
+  if (!selectedRecordId) return;
+  $('detail-verify').disabled = true;
+  $('detail-status').textContent = '오디오를 확인하고 있습니다…';
+  try {
+    const result = await bridge.inspect(selectedRecordId);
+    const text = result.state === 'complete' ? `완료 확인 · ${result.durationSeconds.toFixed(1)}초` :
+      result.state === 'incomplete' ? '미완료 기록 · 복구 검토가 필요합니다.' : '손상 감지 · 오디오를 확인해 주세요.';
+    inspectHints.set(selectedRecordId, { text, state: result.state,
+      hint: result.state === 'complete' ? `${result.durationSeconds.toFixed(1)}초` : undefined });
+    applyDetailInspect(inspectHints.get(selectedRecordId));
+    const hint = document.querySelector(`.record-picker[data-record-id="${selectedRecordId}"] .record-hint`);
+    if (hint) hint.textContent = inspectHintText(inspectHints.get(selectedRecordId));
+  } catch { $('detail-status').textContent = '지금은 검증할 수 없습니다. 녹음 종료 후 다시 시도하세요.'; }
+  finally { $('detail-verify').disabled = false; }
+}
+async function recoverSelected() {
+  if (!selectedRecordId) return;
+  $('detail-recover').disabled = true; $('detail-verify').disabled = true;
+  $('detail-status').textContent = '검증된 구간을 별도 WAV로 저장하고 있습니다. 원본은 변경하지 않습니다.';
+  try {
+    const result = await bridge.recoverAudio(selectedRecordId);
+    const text = `누락 구간은 복원되지 않습니다. ${result.spans}개 구간 · 복구 오디오 저장: ${result.path}`;
+    inspectHints.set(selectedRecordId, { text, kind: 'recover', state: 'incomplete' });
+    applyDetailInspect(inspectHints.get(selectedRecordId));
+    const hint = document.querySelector(`.record-picker[data-record-id="${selectedRecordId}"] .record-hint`);
+    if (hint) hint.textContent = inspectHintText(inspectHints.get(selectedRecordId));
+  } catch (error) { $('detail-status').textContent = `복구 오디오를 저장하지 못했습니다: ${error.message}`; }
+  finally { $('detail-recover').disabled = false; $('detail-verify').disabled = false; }
+}
+async function runAnalysis(mode) {
+  if (!selectedRecordId) return;
+  for (const id of ['detail-transcribe', 'detail-summarize', 'detail-analyze']) $(id).disabled = true;
+  try { await analyze(selectedRecordId, $('analysis-language').value, mode); }
+  finally { for (const id of ['detail-transcribe', 'detail-summarize', 'detail-analyze']) $(id).disabled = false; }
+}
+$('detail-verify').addEventListener('click', () => { void inspectSelected(); });
+$('detail-recover').addEventListener('click', () => { void recoverSelected(); });
+$('detail-transcribe').addEventListener('click', () => { void runAnalysis('transcribe'); });
+$('detail-summarize').addEventListener('click', () => { void runAnalysis('summarize'); });
+$('detail-analyze').addEventListener('click', () => { void runAnalysis('full'); });
 async function refreshRecords() {
   if (loadingRecords) return;
   loadingRecords = true;
   $('refresh').disabled = true;
   try {
     const records = await bridge.list();
+    lastRecords = records;
     const models = await bridge.models();
     installedVad = models.vad;
+    updateAnalysisButtons(models);
     $('silence-enabled').disabled = !installedVad || !['idle', 'saved', 'failed', 'ready'].includes(phase);
     $('silence-model').textContent = installedVad ? '로컬 무음 감시 모델 설치됨' : '무음 자동 종료에는 승인된 로컬 VAD 모델이 필요합니다.';
     const sttLabel = models.stt?.label ?? (models.stt?.backend === 'apple' ? `macOS 음성 인식 (${models.stt.locale})` : models.stt?.modelId ? `로컬 Whisper (${models.stt.modelId})` : null);
     $('model-status').textContent = models.error ?? (models.stt && models.summary ? `${sttLabel ?? '전사'} · 요약 설치됨${models.vad ? ' · 발화 감지 설치됨' : ' · 발화 감지 미설치: 자동 요약 보류'}` : '전사·요약을 실행하려면 승인된 로컬 모델팩을 설치하세요.');
     $('records').replaceChildren();
-    $('library-message').textContent = records.length ? '최근 50개까지 표시합니다. 오디오 검증으로 저장 상태를 확인하세요.' : '저장된 기록이 없습니다.';
+    $('library-message').textContent = records.length ? '최근 50개까지 표시합니다. 항목을 선택하세요.' : '저장된 기록이 없습니다.';
     for (const record of records) {
       const row = document.createElement('li');
-      const info = document.createElement('div');
+      const picker = document.createElement('button');
+      picker.type = 'button';
+      picker.className = 'record-picker secondary';
+      picker.dataset.recordId = record.id;
       const title = document.createElement('strong');
       title.textContent = new Date(record.modifiedAt).toLocaleString('ko-KR');
-      const identity = document.createElement('small'); identity.textContent = record.id;
-      const status = document.createElement('p'); status.textContent = '검증 전'; status.setAttribute('aria-live', 'polite');
-      info.append(title, identity, status);
-      const verify = document.createElement('button'); verify.className = 'secondary'; verify.textContent = '오디오 검증';
-      const recover = document.createElement('button'); recover.className = 'secondary';
-      recover.textContent = '검증된 오디오 복구 저장'; recover.hidden = true;
-      recover.addEventListener('click', async () => {
-        recover.disabled = true; verify.disabled = true;
-        status.textContent = '검증된 구간을 별도 WAV로 저장하고 있습니다. 원본은 변경하지 않습니다.';
-        try {
-          const result = await bridge.recoverAudio(record.id);
-          status.textContent = `누락 구간은 복원되지 않습니다. ${result.spans}개 구간 · 복구 오디오 저장: ${result.path}`;
-        } catch (error) { status.textContent = `복구 오디오를 저장하지 못했습니다: ${error.message}`; }
-        finally { recover.disabled = false; verify.disabled = false; }
-      });
-      verify.addEventListener('click', async () => {
-        verify.disabled = true; status.textContent = '오디오를 확인하고 있습니다…';
-        try {
-          const result = await bridge.inspect(record.id);
-          recover.hidden = result.state === 'complete';
-          status.textContent = result.state === 'complete' ? `완료 확인 · ${result.durationSeconds.toFixed(1)}초` :
-            result.state === 'incomplete' ? '미완료 기록 · 복구 검토가 필요합니다.' : '손상 감지 · 오디오를 확인해 주세요.';
-        } catch { status.textContent = '지금은 검증할 수 없습니다. 녹음 종료 후 다시 시도하세요.'; }
-        finally { verify.disabled = false; }
-      });
-      const controls = document.createElement('div'); controls.className = 'record-actions'; controls.append(verify, recover);
-      if (models.stt && models.summary) {
-        const run = document.createElement('button'); run.textContent = '전사·요약';
-        run.addEventListener('click', async () => { run.disabled = true; try { await analyze(record.id); } finally { run.disabled = false; } });
-        controls.append(run);
-      }
-      row.append(info, controls); $('records').append(row);
+      const hint = document.createElement('span');
+      hint.className = 'record-hint';
+      hint.textContent = inspectHintText(inspectHints.get(record.id));
+      picker.append(title, hint);
+      picker.addEventListener('click', () => selectRecord(record));
+      if (record.id === selectedRecordId) picker.classList.add('selected');
+      row.append(picker); $('records').append(row);
     }
+    if (selectedRecordId) {
+      const current = records.find(record => record.id === selectedRecordId);
+      if (current) selectRecord(current);
+      else { selectedRecordId = undefined; $('record-detail').hidden = true; }
+    } else if (records.length === 1) selectRecord(records[0]);
   } catch { $('library-message').textContent = '기록 목록을 불러오지 못했습니다. 다시 시도하세요.'; }
   finally { loadingRecords = false; $('refresh').disabled = false; }
 }
 $('refresh').addEventListener('click', () => { void refreshRecords(); });
+addEventListener('resize', () => { if (!$('timeline').hidden) drawTimeline(); });
 void refreshRecords();
