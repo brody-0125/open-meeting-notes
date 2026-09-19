@@ -8,6 +8,8 @@ test/**/*.mjs
 test/**/*.cjs
 scripts/**/*.mjs
 
+.ci-fixtures/
+
 test-results/
 playwright-report/
 *.log
