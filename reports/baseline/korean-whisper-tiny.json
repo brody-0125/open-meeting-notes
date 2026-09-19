@@ -1,0 +1,253 @@
+{
+  "version": 1,
+  "createdAt": "2026-09-19T12:47:03.520Z",
+  "model": "whisper-tiny",
+  "dtype": "q8",
+  "device": "wasm",
+  "engine": "@huggingface/transformers@4.3.0",
+  "language": "ko",
+  "modelManifestHash": "fbcbeffd43cf1e06d01dc7ef58930600b8da40f8eeb68c3ffce4b5bd7c98a10a",
+  "corpusSha256": "bdaabc070c1793d202523ec607c15e77c9ebad92846465064b5674a86d51ddb0",
+  "speechVoice": "Microsoft Heami Desktop",
+  "normalization": "NFKC; lowercase; retain Unicode letters and numbers only; no numeric verbalization equivalence for CER",
+  "limitations": [
+    "Synthetic single-voice speech; not human meeting evaluation",
+    "Literal presence is not semantic correctness",
+    "First inference timing includes model load",
+    "No release threshold selected from this tiny corpus"
+  ],
+  "totalEdits": 27,
+  "totalReferenceCharacters": 147,
+  "microCer": 0.1836734693877551,
+  "cases": [
+    {
+      "id": "negation",
+      "reference": "이번 배포는 승인하지 않았습니다. 보안 검토가 끝날 때까지 보류합니다.",
+      "audioSha256": "3739ee969d072b02e9bcaeb6884aa6253b2920c809708b470e54ae3b32ef6d2a",
+      "hypothesis": " 이번 피곤은 승인하지 않았습니다.  포한 검토가 끝날 때까지 보죰합니다.",
+      "seconds": 6.74,
+      "inferenceMs": 6982.5,
+      "segments": [
+        {
+          "id": "negation:0",
+          "jobId": "negation",
+          "source": "microphone",
+          "start": 0,
+          "end": 2.88,
+          "rawText": " 이번 피곤은 승인하지 않았습니다.",
+          "flags": []
+        },
+        {
+          "id": "negation:1",
+          "jobId": "negation",
+          "source": "microphone",
+          "start": 2.88,
+          "end": 6.48,
+          "rawText": " 포한 검토가 끝날 때까지 보죰합니다.",
+          "flags": []
+        }
+      ],
+      "edits": 6,
+      "referenceCharacters": 29,
+      "cer": 0.20689655172413793,
+      "literalChecks": [
+        {
+          "label": "승인 부정",
+          "present": true
+        },
+        {
+          "label": "보류",
+          "present": false
+        }
+      ]
+    },
+    {
+      "id": "deadline",
+      "reference": "보고서 제출 기한은 월요일이 아니라 금요일입니다.",
+      "audioSha256": "d9ab390656ff00f279aa37e472e2b1b1f73624d740321c7f2728ed0a18d6a458",
+      "hypothesis": " 보곳에서 제출기하는 무료일이 아니라 금요일입니다.",
+      "seconds": 4.155,
+      "inferenceMs": 2896.5,
+      "segments": [
+        {
+          "id": "deadline:0",
+          "jobId": "deadline",
+          "source": "microphone",
+          "start": 0,
+          "end": 4.155,
+          "rawText": " 보곳에서 제출기하는 무료일이 아니라 금요일입니다.",
+          "flags": [
+            "clipped-end"
+          ]
+        }
+      ],
+      "edits": 6,
+      "referenceCharacters": 21,
+      "cer": 0.2857142857142857,
+      "literalChecks": [
+        {
+          "label": "기존 기한 부정",
+          "present": false
+        },
+        {
+          "label": "금요일",
+          "present": true
+        }
+      ]
+    },
+    {
+      "id": "owners",
+      "reference": "민수 씨가 보고서를 작성하고 지연 씨가 검토합니다.",
+      "audioSha256": "c49fdb05ab36ad5bf7168219371a8e2509dcdfd913bef446d9d208dcf7419b00",
+      "hypothesis": " 민수 씨가 보고서를 작성하고 지연 씨가 검토합니다.",
+      "seconds": 4.56,
+      "inferenceMs": 2771.2999999523163,
+      "segments": [
+        {
+          "id": "owners:0",
+          "jobId": "owners",
+          "source": "microphone",
+          "start": 0,
+          "end": 4.56,
+          "rawText": " 민수 씨가 보고서를 작성하고 지연 씨가 검토합니다.",
+          "flags": [
+            "clipped-end"
+          ]
+        }
+      ],
+      "edits": 0,
+      "referenceCharacters": 21,
+      "cer": 0,
+      "literalChecks": [
+        {
+          "label": "작성 담당",
+          "present": true
+        },
+        {
+          "label": "검토 담당",
+          "present": true
+        }
+      ]
+    },
+    {
+      "id": "amount",
+      "reference": "예산은 오백만 원입니다. 오천만 원이 아닙니다.",
+      "audioSha256": "6b8ebde8e21560304195847f5583fcd688e8803e64ebe680b5fb193f46241818",
+      "hypothesis": " 예산은 500만 원입니다.  5000만 원이 아닙니다.",
+      "seconds": 4.95,
+      "inferenceMs": 2976.099999964237,
+      "segments": [
+        {
+          "id": "amount:0",
+          "jobId": "amount",
+          "source": "microphone",
+          "start": 0,
+          "end": 2,
+          "rawText": " 예산은 500만 원입니다.",
+          "flags": []
+        },
+        {
+          "id": "amount:1",
+          "jobId": "amount",
+          "source": "microphone",
+          "start": 2.6,
+          "end": 4.3,
+          "rawText": " 5000만 원이 아닙니다.",
+          "flags": []
+        }
+      ],
+      "edits": 7,
+      "referenceCharacters": 19,
+      "cer": 0.3684210526315789,
+      "literalChecks": [
+        {
+          "label": "금액",
+          "present": true
+        },
+        {
+          "label": "잘못된 금액 부정",
+          "present": true
+        }
+      ]
+    },
+    {
+      "id": "cancellation",
+      "reference": "처음에는 화요일로 정했지만 그 결정을 취소했습니다. 회의는 목요일에 엽니다.",
+      "audioSha256": "a7cdf9b51da5aa0f3cc4badec9dbfa947033e19b8cca4c129a96b320e057dc1e",
+      "hypothesis": " 처음에는 화요일로 정했지만 그 결정을 취소했습니다.  회인은 목요일의 염미다.",
+      "seconds": 7.05,
+      "inferenceMs": 3322.600000023842,
+      "segments": [
+        {
+          "id": "cancellation:0",
+          "jobId": "cancellation",
+          "source": "microphone",
+          "start": 0,
+          "end": 4.8,
+          "rawText": " 처음에는 화요일로 정했지만 그 결정을 취소했습니다.",
+          "flags": []
+        },
+        {
+          "id": "cancellation:1",
+          "jobId": "cancellation",
+          "source": "microphone",
+          "start": 4.8,
+          "end": 7,
+          "rawText": " 회인은 목요일의 염미다.",
+          "flags": []
+        }
+      ],
+      "edits": 5,
+      "referenceCharacters": 32,
+      "cer": 0.15625,
+      "literalChecks": [
+        {
+          "label": "결정 취소",
+          "present": true
+        },
+        {
+          "label": "새 일정",
+          "present": true
+        }
+      ]
+    },
+    {
+      "id": "mixed",
+      "reference": "API 서버의 오류를 확인하고 다음 주까지 수정하겠습니다.",
+      "audioSha256": "25e6b93b1b557fa666dcbf8469099cba0736adc50fb2977097fbbd6ecbd4ef88",
+      "hypothesis": " AAPI 서버의 우리를 확인하고 다음 주까지 수정하겠습니다.",
+      "seconds": 5.05,
+      "inferenceMs": 2917.699999988079,
+      "segments": [
+        {
+          "id": "mixed:0",
+          "jobId": "mixed",
+          "source": "microphone",
+          "start": 0,
+          "end": 5.05,
+          "rawText": " AAPI 서버의 우리를 확인하고 다음 주까지 수정하겠습니다.",
+          "flags": [
+            "clipped-end"
+          ]
+        }
+      ],
+      "edits": 3,
+      "referenceCharacters": 25,
+      "cer": 0.12,
+      "literalChecks": [
+        {
+          "label": "기술 용어",
+          "present": true
+        },
+        {
+          "label": "기한",
+          "present": true
+        },
+        {
+          "label": "작업 약속",
+          "present": true
+        }
+      ]
+    }
+  ]
+}

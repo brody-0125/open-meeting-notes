@@ -73,6 +73,7 @@ Apple STT profile examples: [`docs/examples/installed-apple.json`](docs/examples
 | STT backends (Whisper vs Apple), IPC, CI | [`docs/stt-dual-track.md`](docs/stt-dual-track.md) |
 | macOS native helper | [`native/macos/README.md`](native/macos/README.md) |
 | Release checklist | [`RELEASING.md`](RELEASING.md) |
+| Korean synthetic STT regression (P1) | [`RELEASING.md`](RELEASING.md#korean-synthetic-stt-regression-p1) |
 | Private design notes (local only) | `docs/private/` (gitignored) |
 
 ## Testing

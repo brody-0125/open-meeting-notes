@@ -78,6 +78,7 @@
     "test:package": "node --test test/electron/package.test.mjs",
     "test:package-models": "node --test test/electron/package-models.test.mjs",
     "evaluate:korean-stt": "node scripts/evaluate-korean-stt.mjs",
+    "compare:korean-stt": "node scripts/compare-korean-stt-reports.mjs",
     "smoke:stt-local": "node scripts/run-local-stt-smoke.mjs"
   },
   "devDependencies": {

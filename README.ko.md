@@ -73,6 +73,7 @@ Apple STT 프로필 예: [`docs/examples/installed-apple.json`](docs/examples/in
 | STT 백엔드 (Whisper vs Apple), IPC, CI | [`docs/stt-dual-track.md`](docs/stt-dual-track.md) |
 | macOS 네이티브 헬퍼 | [`native/macos/README.md`](native/macos/README.md) |
 | 릴리스 체크리스트 | [`RELEASING.md`](RELEASING.md) |
+| 한국어 합성 STT 회귀(P1) | [`RELEASING.md`](RELEASING.md#korean-synthetic-stt-regression-p1) |
 | 비공개 설계 노트 (로컬 전용) | `docs/private/` (gitignore) |
 
 ## 테스트
