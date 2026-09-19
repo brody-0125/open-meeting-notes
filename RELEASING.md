@@ -17,6 +17,8 @@ Update example metadata when bumping (e.g. [`docs/examples/apple-stt-capability.
 - [ ] `npm ci` && `npm run build:inference` && `npm test`
 - [ ] macOS: `npm run ci:macos-apple-stt` (on a Mac runner or machine)
 - [ ] Build and smoke-test packages on target OS (models supplied locally; not in Git)
+- [ ] **P0 local Whisper smoke** (Track A): `npm run smoke:stt-local` after one-time fixture prep (see [docs/stt-dual-track.md](docs/stt-dual-track.md))
+- [ ] **P0+ before release:** `npm run test:app-models` and `npm run test:korean-small-flow` with `whisper-small` / Korean speech fixtures
 - [ ] Git tag `v1.0.0` on the release commit
 - [ ] GitHub Release with notes from `CHANGELOG.md` `[1.0.0]`
 - [ ] Attach unsigned development packages (not stored in Git):

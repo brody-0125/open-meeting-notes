@@ -77,7 +77,8 @@
     "audit:windows-egress": "node scripts/audit-windows-egress.mjs",
     "test:package": "node --test test/electron/package.test.mjs",
     "test:package-models": "node --test test/electron/package-models.test.mjs",
-    "evaluate:korean-stt": "node scripts/evaluate-korean-stt.mjs"
+    "evaluate:korean-stt": "node scripts/evaluate-korean-stt.mjs",
+    "smoke:stt-local": "node scripts/run-local-stt-smoke.mjs"
   },
   "devDependencies": {
     "electron": "44.4.1",

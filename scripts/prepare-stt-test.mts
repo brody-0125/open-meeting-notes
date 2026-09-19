@@ -39,7 +39,7 @@ const pinnedSpeech = join(repoRoot, 'test/fixtures/speech.wav');
 const expectedSpeechHash = (await readFile(join(repoRoot, 'test/fixtures/speech.wav.sha256'), 'utf8')).trim().toLowerCase();
 const speechBytes = await readFile(pinnedSpeech);
 const speechHash = createHash('sha256').update(speechBytes).digest('hex');
-if (speechHash !== expectedSpeechHash) throw new Error('pinned speech.wav sha256 mismatch');
+if (speechHash !== expectedSpeechHash) throw new Error('pinned speech.wav sha256 mismatch; update test/fixtures after regenerating with prepare-speech-test.ps1');
 await copyFile(pinnedSpeech, join(root, 'speech.wav'));
 await build({ entryPoints: ['src/inference/whisper.mjs'], outfile: join(root, 'whisper.mjs'), bundle: true, platform: 'browser', format: 'esm' });
 console.log('Prepared test-only manifest approval; not a production trust/signing mechanism.');
