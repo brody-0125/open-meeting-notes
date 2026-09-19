@@ -23,7 +23,7 @@ jobs:
           path: .ci-fixtures/stt-whisper-tiny
           key: omn-stt-whisper-tiny-${{ hashFiles('scripts/prepare-stt-test.mts', 'test/fixtures/speech.wav.sha256') }}
       - name: Prepare STT fixture
-        if: stt-fixture-cache.outputs.cache-hit != 'true'
+        if: steps.stt-fixture-cache.outputs.cache-hit != 'true'
         run: node scripts/prepare-stt-test.mjs .ci-fixtures/stt-whisper-tiny whisper-tiny
       - name: Whisper STT smoke
         env:
