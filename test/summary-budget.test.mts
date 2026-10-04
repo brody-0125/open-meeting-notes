@@ -47,6 +47,6 @@ test('request builder snapshots only evidence-bearing fields and retains existin
   const original = { revision: 1, segments: [{ id: 's1', rawText: '원문', metadata: 'not a prompt field' }] };
   const req = buildSummaryRequest(original);
   original.segments[0].rawText = '수정';
-  assert.deepEqual(JSON.parse(req.messages[1].content), { revision: 1, transcript: [{ id: 's1', rawText: '원문' }] });
+  assert.deepEqual(JSON.parse(req.messages[1].content), { revision: 1, transcript: [{ id: 's0', rawText: '원문' }] });
   assert.throws(() => buildSummaryRequest({ revision: 1, segments: [{ id: 's1', rawText: 'x'.repeat(12001) }] }), /chunking/);
 });

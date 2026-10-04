@@ -72,55 +72,12 @@ for (const failure of [null, 'track', 'context']) test(`real capture pause ${fai
       assert.ok(result.resume.starts[source] > result.pause.cutoffs[source]);
       assert.ok(chunks.some(c => c.meta.startFrame === result.resume.starts[source]));
       assert.ok(chunks.every(c => c.meta.startFrame + c.meta.frames <= result.pause.cutoffs[source] || c.meta.startFrame >= result.resume.starts[source]));
+      const before = chunks.find(c => c.meta.startFrame + c.meta.frames === result.pause.cutoffs[source]);
+      const after = chunks.find(c => c.meta.startFrame === result.resume.starts[source]);
+      assert.ok(before && after, 'pause/resume boundaries must coincide with stored chunks');
+      assert.equal(after.meta.seq, before.meta.seq + 1);
     }
   }
-});
-
-test('real Worklet keeps running during pause without posting PCM and resumes on its audio clock', { timeout: 30000 }, async t => {
-  const root = await mkdtemp(join(tmpdir(), 'omn-worklet-pause-'));
-  const app = await electron.launch({ args: [fileURLToPath(new URL('./main.mjs', import.meta.url))],
-    env: { ...process.env, OMN_TEST_PROFILE: join(root, 'profile'), OMN_TEST_AUDIO: join(root, 'audio') } });
-  t.after(async () => { await app.close(); await rm(root, { recursive: true, force: true }); });
-  const page = await app.firstWindow();
-  const result = await page.evaluate(async () => {
-    const context = new AudioContext({ sampleRate: 48000 });
-    let oscillator, node;
-    try {
-      await context.audioWorklet.addModule('/capture-worklet.mjs');
-      node = new AudioWorkletNode(context, 'meeting-capture', {
-        processorOptions: { sessionId: 'pause-test', source: 'microphone', chunkFrames: 4800 }
-      });
-      oscillator = new OscillatorNode(context);
-      oscillator.connect(node).connect(context.destination); oscillator.start();
-      const chunks = [], waiting = new Map();
-      const next = type => new Promise((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error(`missing ${type}`)), 5000);
-        waiting.set(type, data => { clearTimeout(timer); resolve(data); });
-      });
-      node.port.onmessage = ({ data }) => {
-        if (data.type === 'chunk') { chunks.push(data.meta); node.port.postMessage({ type: 'ack', seq: data.meta.seq }); }
-        const deliver = waiting.get(data.type); waiting.delete(data.type); deliver?.(data);
-      };
-      await context.resume();
-      let pending = next('chunk'); node.port.postMessage({ type: 'start' }); await pending;
-      pending = next('paused'); node.port.postMessage({ type: 'pause', pauseId: 1 });
-      const paused = await pending, count = chunks.length;
-      await new Promise(resolve => setTimeout(resolve, 250));
-      const pausedCount = chunks.length, stateDuringPause = context.state;
-      pending = next('resumed'); node.port.postMessage({ type: 'resume', pauseId: 1 });
-      const resumed = await pending;
-      // The first resumed chunk may have arrived in the same message batch.
-      if (chunks.length === count) await next('chunk');
-      pending = next('stopped'); node.port.postMessage({ type: 'stop' }); await pending;
-      return { paused, resumed, count, pausedCount, stateDuringPause, before: chunks[count - 1], after: chunks[count] };
-    } finally { oscillator?.stop(); node?.disconnect(); node?.port.close(); await context.close(); }
-  });
-  assert.equal(result.stateDuringPause, 'running');
-  assert.equal(result.count, result.pausedCount);
-  assert.equal(result.before.startFrame + result.before.frames, result.paused.cutoff);
-  assert.ok(result.resumed.startFrame > result.paused.cutoff);
-  assert.equal(result.after.startFrame, result.resumed.startFrame);
-  assert.equal(result.after.seq, result.before.seq + 1);
 });
 
 test('real stopped MediaStream track fails capture and releases both sources', { timeout: 30000 }, async t => {
@@ -213,6 +170,20 @@ test('two real MediaStreams → Worklets → coordinated drain → durable stora
     const bytes = Buffer.concat(recovered.chunks.filter(c => c.meta.source === source).sort((a, b) => a.meta.seq - b.meta.seq).map(c => c.pcm));
     assert.deepEqual(bytes, Buffer.from(result.samples[source]));
     assert.equal(bytes.length, result.cutoffs[source] * 2);
+    // Sink-vs-store equality alone also passes when sources are swapped.
+    const rate = recovered.chunks.find(c => c.meta.source === source).meta.sampleRate;
+    let crossings = 0, energy = 0, active = 0, first = -1, last = -1;
+    for (let i = 1; i < bytes.length / 2; i++) {
+      const previous = bytes.readInt16LE((i - 1) * 2), sample = bytes.readInt16LE(i * 2);
+      if (previous <= 0 && sample > 0) { crossings++; if (first < 0) first = i; last = i; }
+      if (sample !== 0) { energy += (sample / 32768) ** 2; active++; }
+    }
+    const expectedHz = source === 'microphone' ? 440 : 880;
+    assert.ok(crossings > 10, 'sufficient captured tone cycles required');
+    const measuredHz = (crossings - 1) * rate / (last - first);
+    assert.ok(Math.abs(measuredHz - expectedHz) < expectedHz * .02, source + ': unexpected frequency ' + measuredHz);
+    const rms = Math.sqrt(energy / active);
+    assert.ok(rms > .65 && rms < .76, source + ': unexpected tone RMS ' + rms);
   }
   assert.notDeepEqual(result.samples.microphone, result.samples.remote);
 });

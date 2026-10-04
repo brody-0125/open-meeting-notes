@@ -7,6 +7,7 @@ src/**/*.cjs
 test/**/*.mjs
 test/**/*.cjs
 scripts/**/*.mjs
+tools/**/*.mjs
 
 .ci-fixtures/
 
@@ -36,6 +37,7 @@ playwright-report/
 *.safetensors
 *.wav
 !test/fixtures/speech.wav
+!test/fixtures/beta-launch.wav
 *.pcm
 *.webm
 *.pfx

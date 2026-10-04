@@ -222,7 +222,7 @@ export function renderAnalysis(result) {
       }
       $('summary').append(li);
     }
-    const summaryError = result.summaryErrorCode === 'CONTEXT_LIMIT' ? '모델 입력 한도를 넘었습니다. 보존된 전사를 검토하세요.' : result.summaryError;
+    const summaryError = result.summaryErrorCode === 'OUTPUT_LIMIT' ? '요약 출력 한도에 도달했습니다. 전사와 완료된 구간 요약은 보존됩니다.' : result.summaryErrorCode === 'CONTEXT_LIMIT' ? '모델 입력 한도를 넘었습니다. 보존된 전사를 검토하세요.' : result.summaryError;
     $('analysis-status').textContent = reconciled ? '전사·통합 요약 완료 · 변경·취소 내용을 원문과 비교해 검토하세요.' : result.reconciliation?.state === 'failed' ? `구간 요약은 보존됐지만 통합을 완료하지 못했습니다: ${summaryError}` : result.summaryParts?.state === 'partial' ? `구간 요약 ${result.summaryParts.parts.length}/${result.summaryParts.total} 완료 · 나머지는 재시도가 필요합니다: ${summaryError}` : result.summaryParts?.total > 1 ? `구간 요약 ${result.summaryParts.total}/${result.summaryParts.total} 완료 · 구간 사이의 결정 변경·취소는 원문 검토가 필요합니다.` : summaryError ? `전사는 완료됐지만 요약을 완료하지 못했습니다: ${summaryError}` : result.needsReview ? '발화 미확인 또는 전사 충돌·누락으로 요약을 보류했습니다. 원음을 검토하세요.' :
       result.summary ? '전사·요약 완료 · 요약 후보를 원문과 비교해 검토하세요.' :
       result.transcript.segments.length && result.transcript.segments.every(s => s.speechReview === 'rejected')

@@ -1,20 +1,20 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { summarizeTranscript, summarySchema, buildSummaryRequest } from '../src/inference/summary.mjs';
-const input = () => ({ revision: 2, segments: [{ id: 's1', rawText: '민수가 금요일까지 보고서를 작성한다.' }] });
-const valid = () => ({ version: 1, revision: 2, items: [{ kind: 'action', text: '민수의 보고서 작성', status: 'candidate', evidence: [{ segmentId: 's1', quote: '민수가 금요일까지 보고서를 작성한다.' }] }] });
+const input = () => ({ revision: 2, segments: [{ id: 's0', rawText: '민수가 금요일까지 보고서를 작성한다.' }] });
+const valid = () => ({ version: 1, revision: 2, items: [{ kind: 'action', text: '민수의 보고서 작성', status: 'candidate', evidence: [{ segmentId: 's0', quote: '민수가 금요일까지 보고서를 작성한다.' }] }] });
 const response = (value, finish_reason = 'stop') => ({ choices: [{ finish_reason, message: { content: JSON.stringify(value) } }] });
 
 test('summary grammar produces evidence and text before selecting the claim kind', () => {
   assert.deepEqual(Object.keys(summarySchema(1).properties.items.items.properties), ['evidence', 'text', 'kind', 'status']);
 });
 
-test('summary grammar permits only source evidence IDs, including production-format IDs', () => {
+test('summary grammar uses only short request-local aliases', () => {
   const segments = ['microphone:0:0:0', 'remote:0:1:0'].map(id => ({ id, rawText: '자료를 검토합니다.' }));
   const request = buildSummaryRequest({ revision: 1, segments });
   const schema = JSON.parse(request.response_format.schema);
   assert.deepEqual(schema.properties.items.items.properties.evidence.items.properties.segmentId,
-    { type: 'string', enum: segments.map(s => s.id) });
+    { type: 'string', enum: ['s0', 's1'] });
   const empty = JSON.parse(buildSummaryRequest({ revision: 1, segments: [] }).response_format.schema);
   assert.equal(empty.properties.items.maxItems, 0);
 });
@@ -26,14 +26,15 @@ test('C07/C08 accepts only evidence-linked candidate summary for the input revis
   }
 });
 test('C08 rejects truncated generation even when content happens to parse', async () => {
-  await assert.rejects(summarizeTranscript(async () => response(valid(), 'length'), input()), /incomplete/);
+  await assert.rejects(summarizeTranscript(async () => response(valid(), 'length'), input()), { code: 'OUTPUT_LIMIT', message: 'incomplete summary generation (length)' });
+  await assert.rejects(summarizeTranscript(async () => response(valid(), 'content_filter'), input()), error => error.code === undefined && /content_filter/.test(error.message));
 });
 
 test('evidence failures distinguish missing IDs and changed quotations without exposing text', async () => {
   for (const [evidence, message] of [
     [{ segmentId: 'private-id', quote: 'private-quote' }, 'invalid evidence: unknown segment'],
-    [{ segmentId: 's1', quote: 'private-quote' }, 'invalid evidence: quote mismatch'],
-    [{ segmentId: 's1', quote: '' }, 'invalid evidence: empty quote']
+    [{ segmentId: 's0', quote: 'private-quote' }, 'invalid evidence: quote mismatch'],
+    [{ segmentId: 's0', quote: '' }, 'invalid evidence: empty quote']
   ]) {
     const bad = valid(); bad.items[0].evidence = [evidence];
     await assert.rejects(summarizeTranscript(async () => response(bad), input()), { message });
@@ -59,4 +60,22 @@ test('C07 rejects duplicate IDs and oversize transcript before calling model', a
 test('C07 cancel discards completed response', async () => {
   const controller = new AbortController();
   await assert.rejects(summarizeTranscript(async () => { controller.abort(); return response(valid()); }, input(), { signal: controller.signal }), /abort/i);
+});
+
+test('identical transcript content produces identical prompts across job IDs and restores exact evidence IDs', async () => {
+  const original = { revision: 2, segments: [
+    { id: `${'a'.repeat(64)}:0`, rawText: '민수가 금요일까지 보고서를 작성한다.' },
+    { id: 's0', rawText: '출시는 11월 11일이다.' }
+  ] };
+  const renamed = structuredClone(original); renamed.segments[0].id = `${'b'.repeat(64)}:1`; renamed.segments[1].id = 's1';
+  assert.deepEqual(buildSummaryRequest(original), buildSummaryRequest(renamed));
+  const result = await summarizeTranscript(async request => {
+    const segments = JSON.parse(request.messages[1].content).transcript;
+    return response({ version: 1, revision: 2, items: segments.map(s => ({ kind: 'topic', text: s.rawText,
+      status: 'candidate', evidence: [{ segmentId: s.id, quote: s.rawText }] })) });
+  }, original);
+  assert.deepEqual(result.items.map(i => i.evidence[0].segmentId), original.segments.map(s => s.id));
+  assert.equal(original.segments[1].id, 's0');
+  const invalid = valid(); invalid.items[0].evidence[0].segmentId = original.segments[0].id;
+  await assert.rejects(summarizeTranscript(async () => response(invalid), original), /unknown segment/);
 });

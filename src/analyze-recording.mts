@@ -46,7 +46,7 @@ export async function analyzeRecording({ root, models, execute, signal, language
   if (!input.segments.length) return { transcript, summary: null, needsReview: false };
   const descriptor = { version: 1, sessionId: recording.sessionId, kind: 'summarize', revision: input.revision,
     inputHash: sha(input), modelHash: models.summary.modelHash,
-    settingsHash: sha({ engine: 'webllm-0.2.85', tokenizer: 'web-tokenizers-0.1.6', prompt: 'classification-v4-source-ids', partition: 1, maxTokens: 1024, temperature: 0, context: 4096 }) };
+    settingsHash: sha({ engine: 'webllm-0.2.85', tokenizer: 'web-tokenizers-0.1.6', prompt: 'classification-v5-compact-ids-facts', partition: 1, maxTokens: 1024, temperature: 0, context: 4096 }) };
   try {
     const plan = await runJob(jobs, { ...descriptor, kind: 'plan-summary' },
       () => execute('plan-summary', { transcript: input, modelHash: models.summary.modelHash }),
@@ -73,7 +73,8 @@ export async function analyzeRecording({ root, models, execute, signal, language
       }
     }
     return { transcript, summary: summaryParts.state === 'complete' && plan.length === 1 ? summaryParts.parts[0].summary : null,
-      summaryParts, needsReview: false, ...(summaryParts.state === 'partial' ? { summaryError: summaryParts.error } : {}) };
+      summaryParts, needsReview: false, ...(summaryParts.state === 'partial' ? { summaryError: summaryParts.error,
+        ...(summaryParts.errorCode ? { summaryErrorCode: summaryParts.errorCode } : {}) } : {}) };
   } catch (error) {
     signal?.throwIfAborted();
     return { transcript, summary: null, needsReview: false,

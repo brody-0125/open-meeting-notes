@@ -93,7 +93,8 @@ export async function summarizePartitions(parts, summarize, { signal } = {}) {
       completed.push({ index, summary });
     } catch (error) {
       signal?.throwIfAborted();
-      return { state: 'partial', parts: completed, failedPart: index, error: String(error.message).slice(0, 1000) };
+      return { state: 'partial', parts: completed, failedPart: index, error: String(error.message).slice(0, 1000),
+        ...(['OUTPUT_LIMIT', 'CONTEXT_LIMIT'].includes(error.code) ? { errorCode: error.code } : {}) };
     }
   }
   return { state: 'complete', parts: completed };
