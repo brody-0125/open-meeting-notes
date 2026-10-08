@@ -37,6 +37,11 @@ test('one active inference job; idle worker reused', async () => {
   const third = client.run('reconcile', { reconciliation: { revision: 3 } });
   reply(workers[0], 'third'); assert.equal(await third, 'third');
   assert.equal(workers[0].messages.at(-1).operation, 'reconcile');
+  for (const operation of ['vad-load', 'vad']) {
+    const pending = client.run(operation, { source: 'microphone', samples: new Float32Array(512) });
+    assert.equal(workers[0].messages.at(-1).operation, operation);
+    reply(workers[0], { ready: true }); await pending;
+  }
   assert.equal(workers.length, 1); client.dispose();
 });
 test('abort terminates computation; late result cannot settle the next job', async () => {
@@ -70,17 +75,4 @@ test('dispose rejects an active request and permanently closes client', async ()
   client.dispose();
   await assert.rejects(request, /disposed/);
   await assert.rejects(client.run('transcribe', {}), /disposed/);
-});
-
-test('VAD preloads in its client, bounds outstanding frames and cancels stale probability results', async () => {
-  const { client, workers } = fixture();
-  const ready = client.run('vad-load', {}); reply(workers[0], { ready: true }); await ready;
-  const controller = new AbortController();
-  const pending = client.run('vad', { source: 'microphone', samples: new Float32Array(512) }, { signal: controller.signal });
-  await assert.rejects(client.run('vad', { source: 'remote' }), /busy/);
-  const stale = workers[0].onmessage, oldId = workers[0].messages.at(-1).id;
-  controller.abort(); await assert.rejects(pending, { name: 'AbortError' });
-  const retry = client.run('vad-load', {});
-  stale({ data: { id: oldId, type: 'result', result: { probability: 0, speech: false } } });
-  reply(workers[1], { ready: true }); assert.deepEqual(await retry, { ready: true }); client.dispose();
 });

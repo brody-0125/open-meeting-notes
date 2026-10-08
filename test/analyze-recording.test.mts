@@ -10,6 +10,9 @@ import { CorrectionStore } from '../src/corrections.mjs';
 import { ReviewStore, speechReviewKey } from '../src/reviews.mjs';
 import { PauseStore } from '../src/pauses.mjs';
 import { meetingMarkdown } from '../src/export.mjs';
+import { createHash } from 'node:crypto';
+import { JobStore } from '../src/jobs.mjs';
+import { summaryInput } from '../src/transcript.mjs';
 const models = { stt: { backend: 'transformers', modelId: 'tiny', modelHash: 'a'.repeat(64), device: 'wasm' },
   summary: { modelHash: 'b'.repeat(64) } };
 const candidate = input => ({ version: 1, revision: 1, items: [{ kind: 'topic', status: 'candidate', text: input.segments[0].rawText,
@@ -207,6 +210,45 @@ test('partial summary survives a fresh analysis and retries only the failed part
   calls.length = 0;
   assert.deepEqual(await analyzeRecording({ root, models, execute }), complete);
   assert.deepEqual(calls, []);
+});
+
+test('summary output exhaustion reaches Main without losing the transcript or caching an incomplete result', async t => {
+  const root = await fixture(t);
+  let transcriptions = 0, summaries = 0;
+  const execute = async (operation, input) => {
+    if (operation === 'transcribe') { transcriptions++; return [{ id: `${input.key}:0`, jobId: input.key,
+      source: 'microphone', start: 0, end: .01, rawText: 'Send report.', flags: [] }]; }
+    if (operation === 'plan-summary') return [input.transcript];
+    summaries++; throw Object.assign(new Error('incomplete summary generation (length)'), { code: 'OUTPUT_LIMIT' });
+  };
+  const first = await analyzeRecording({ root, models, execute });
+  assert.equal(first.summaryErrorCode, 'OUTPUT_LIMIT');
+  assert.equal(first.summary, null); assert.equal(first.transcript.segments.length, 1);
+  const savedTranscriptions = transcriptions;
+  await analyzeRecording({ root, models, execute });
+  assert.equal(transcriptions, savedTranscriptions); assert.equal(summaries, 2);
+});
+
+test('the compact-ID prompt replans instead of reusing the previous source-ID prompt cache', async t => {
+  const root = await fixture(t), calls = [];
+  const execute = async (operation, input) => {
+    calls.push(operation);
+    if (operation === 'transcribe') return [{ id: `${input.key}:0`, jobId: input.key, source: 'microphone',
+      start: 0, end: .01, rawText: 'Send report.', flags: [] }];
+    if (operation === 'plan-summary') return [input.transcript];
+    return candidate(input.transcript);
+  };
+  const { transcript } = await analyzeRecording({ root, models, execute, mode: 'transcribe' });
+  const input = summaryInput(transcript), hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+  const store = new JobStore(join(root, 'jobs'));
+  const lease = await store.begin({ version: 1, sessionId: transcript.sessionId, kind: 'plan-summary', revision: input.revision,
+    inputHash: hash(input), modelHash: models.summary.modelHash,
+    settingsHash: hash({ engine: 'webllm-0.2.85', tokenizer: 'web-tokenizers-0.1.6', prompt: 'classification-v4-source-ids',
+      partition: 1, maxTokens: 1024, temperature: 0, context: 4096 }) });
+  await store.complete(lease, [input]);
+  calls.length = 0;
+  await analyzeRecording({ root, models, execute });
+  assert.deepEqual(calls, ['plan-summary', 'summarize']);
 });
 
 test('invalid reconciliation preserves parts and retries only reconciliation; cancellation never caches a late result', async t => {

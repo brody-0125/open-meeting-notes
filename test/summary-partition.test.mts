@@ -62,3 +62,12 @@ test('all partitions remain separate candidates, and cancellation is propagated'
   const controller = new AbortController();
   await assert.rejects(summarizePartitions(parts, async () => { controller.abort(); return {}; }, { signal: controller.signal }), { name: 'AbortError' });
 });
+
+test('partial summaries preserve only known context/output failure codes', async () => {
+  const parts = [{ revision: 1, segments: [{ id: 's', rawText: 'text' }] }];
+  for (const code of ['OUTPUT_LIMIT', 'CONTEXT_LIMIT', 'OTHER']) {
+    const result = await summarizePartitions(parts, async () => { throw Object.assign(new Error('stopped'), { code }); });
+    assert.equal(result.state, 'partial');
+    assert.equal(result.errorCode, code === 'OTHER' ? undefined : code);
+  }
+});

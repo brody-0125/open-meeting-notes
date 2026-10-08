@@ -30,9 +30,10 @@ for (const paused of [false, true]) test(`Main preview validates provenance and 
   await sealRecording({ store, sessionId: id, cutoffs: paused ? { microphone: 48000, remote: 16000 } : { microphone: 16000, remote: 0 } });
   // Exercise Main, storage, provenance and IPC; model quality has separate tests.
   await page.evaluate(() => window.meeting.onInferenceRequest(message => {
+    if (message.operation !== 'transcribe') throw new Error(`unexpected preview inference: ${message.operation}`);
     const key = message.input.key, offset = message.input.window.startFrame / message.input.window.sampleRate;
     window.meeting.inferenceResult({ id: message.id, runId: message.runId, result: [{
-      id: `${key}:0`, jobId: key, source: 'microphone', start: offset + .25, end: offset + .75,
+      id: `${key}:0`, jobId: key, source: message.input.window.source, start: offset + .25, end: offset + .75,
       rawText: 'candidate', flags: ['speech-unconfirmed']
     }] });
   }));

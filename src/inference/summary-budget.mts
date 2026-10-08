@@ -46,6 +46,10 @@ export async function generateMeasuredJson(generate, request, { countTokens, sig
   assertSummaryBudget(request, measured);
   const response = await generate(request);
   signal?.throwIfAborted();
+  return parseGeneratedJson(response, label);
+}
+
+export function parseGeneratedJson(response, label) {
   const choice = response?.choices?.[0], content = choice?.message?.content;
   if (choice?.finish_reason !== 'stop') {
     const error = new Error(`incomplete ${label} generation (${String(choice?.finish_reason ?? 'missing').slice(0, 40)})`);

@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { _electron as electron } from 'playwright';
 import { ChunkStore } from '../../src/store.mjs';
 import { sealRecording } from '../../src/recording-seal.mjs';
+import { installInferenceDouble } from '../../tools/testing/inference-double.mjs';
 
 test('speech decisions control summary, persist across restart, and reset on correction', { timeout: 60000 }, async t => {
   assert.ok(process.env.OMN_STT_FIXTURE && process.env.OMN_SUMMARY_FIXTURE);
@@ -21,23 +22,18 @@ test('speech decisions control summary, persist across restart, and reset on cor
     page.on('console', e => { if (['error', 'warning'].includes(e.type())) errors.push(e.text()); });
     assert.equal(page.url(), 'omn://app/index.html'); assert.equal(await page.title(), 'open-meeting-notes');
     await page.evaluate(() => {
-      globalThis.operations = []; globalThis.requests = [];
+      globalThis.requests = [];
       window.meeting.onInferenceRequest(message => requests.push(message));
       // Model quality is separate; persistent jobs, review stores, Main and UI are real.
-      globalThis.Worker = class {
-        postMessage({ id, operation, input }) {
-          operations.push(operation);
-          const transcript = input.transcript;
-          const result = operation === 'transcribe' ? [{ id: `${input.audio.jobId}:0`, jobId: input.audio.jobId,
-            source: 'microphone', start: 0, end: 1, rawText: '보고서를 보냅니다.', flags: [] }]
-            : operation === 'plan-summary' ? [transcript]
-            : { version: 1, revision: transcript.revision, items: [{ kind: 'action', status: 'candidate',
-              text: transcript.segments[0].rawText, evidence: [{ segmentId: transcript.segments[0].id, quote: transcript.segments[0].rawText }] }] };
-          queueMicrotask(() => this.onmessage?.({ data: { id, type: 'result', result } }));
-        }
-        terminate() {}
+      globalThis.inferenceHandlers = {
+        transcribe: ({ audio }) => [{ id: `${audio.jobId}:0`, jobId: audio.jobId,
+          source: audio.source, start: 0, end: 1, rawText: '보고서를 보냅니다.', flags: [] }],
+        'plan-summary': ({ transcript }) => [transcript],
+        summarize: ({ transcript }) => ({ version: 1, revision: transcript.revision, items: [{ kind: 'action', status: 'candidate',
+          text: transcript.segments[0].rawText, evidence: [{ segmentId: transcript.segments[0].id, quote: transcript.segments[0].rawText }] }] })
       };
     });
+    await page.evaluate(installInferenceDouble);
   };
   await launch();
   const id = '99999999-9999-4999-8999-999999999999', store = new ChunkStore(join(directory, 'recordings', id));
@@ -55,6 +51,7 @@ test('speech decisions control summary, persist across restart, and reset on cor
   const oldRun = await page.evaluate(() => requests[0].runId);
   await assert.rejects(page.evaluate(run => window.meeting.reviewTranscript(run, '../unknown', 'accepted'), oldRun));
   const choose = async state => {
+    await page.locator('#tab-transcript').click();
     await page.getByLabel('전사 사용 판단', { exact: true }).selectOption(state);
     await page.waitForFunction(expected => document.querySelector('.speech-review-choice')?.value === expected &&
       !document.querySelector('#analysis-export').hidden && !document.querySelector('.speech-review-choice').disabled, state);
@@ -73,7 +70,7 @@ test('speech decisions control summary, persist across restart, and reset on cor
   assert.match(await page.locator('#analysis-status').innerText(), /사용자 판단으로 모든 전사를 요약에서 제외/);
   await app.close(); app = undefined; await launch(); await analyze();
   assert.equal(await page.getByLabel('전사 사용 판단', { exact: true }).inputValue(), 'rejected');
-  assert.deepEqual(await page.evaluate(() => operations), []);
+  assert.deepEqual(await page.evaluate(() => inferenceDouble.requests), []);
   await page.getByText('전사 수정', { exact: true }).click();
   await page.getByLabel('전사 문장 수정', { exact: true }).fill('예산을 보냅니다.');
   await page.getByRole('button', { name: '수정 저장 후 재요약', exact: true }).click();
@@ -85,4 +82,5 @@ test('speech decisions control summary, persist across restart, and reset on cor
   await page.locator('#analysis').screenshot({ path: join(screenshots, 'recheck.png') });
   assert.deepEqual((await store.recover()).chunks[0].pcm, pcm);
   assert.deepEqual(errors, []);
+  assert.deepEqual(await page.evaluate(() => inferenceDouble.unexpected), []);
 });
